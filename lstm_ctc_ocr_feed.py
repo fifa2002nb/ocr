@@ -150,7 +150,6 @@ def run_training():
                                    images_placeholder,
                                    labels_placeholder, 
                                    seqlen_placeholder,
-                                   all_data = False
                                    )
 
         # Run one step of the model.  The return values are the activations
@@ -261,7 +260,7 @@ if __name__ == '__main__':
       '--log_dir',
       type=str,
       default=os.path.join(os.getenv('TEST_TMPDIR', '/Users/miles/dev/python_workspace'),
-                           'tmp'),
+                           'ocr/tmp'),
       help='Directory to put the log data.'
   )
   parser.add_argument(

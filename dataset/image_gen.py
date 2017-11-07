@@ -6,7 +6,7 @@ from multiprocessing import Pool
 
 
 #10+26+26
-char_set='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+char_set = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 imgDir = None
 numProcess = 12
 
