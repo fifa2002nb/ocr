@@ -58,9 +58,9 @@ class DataIterator:
 		self.images.append(np.array(im))
 		code = image_name.split('/')[-1].split('_')[1].split('.')[0]
 		code = [SPACE_INDEX if code == SPACE_TOKEN else encode_maps[c] for c in list(code)]
-         if 8 > len(code):
-           for i in range(8 - len(code))
-             code.append(-1)
+    if 8 > len(code):
+      for i in range(8 - len(code))
+        code.append(-1)
 		self.labels.append(code)
 
     self.num_examples = len(self.labels)
