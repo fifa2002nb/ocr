@@ -50,18 +50,18 @@ class DataIterator:
     self.cur_batch = 0
 
     for root, sub_folder, file_list in os.walk(data_dir):
-	  for file_path in file_list:
-		image_name = os.path.join(root, file_path)
-		im = cv2.imread(image_name, 0)
-		im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
-		im = im.swapaxes(0, 1)
-		self.images.append(np.array(im))
-		code = image_name.split('/')[-1].split('_')[1].split('.')[0]
-		code = [SPACE_INDEX if code == SPACE_TOKEN else encode_maps[c] for c in list(code)]
-    if 8 > len(code):
-      for i in range(8 - len(code))
-        code.append(-1)
-		self.labels.append(code)
+      for file_path in file_list:
+        image_name = os.path.join(root, file_path)
+        im = cv2.imread(image_name, 0)
+        im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+        im = im.swapaxes(0, 1)
+        self.images.append(np.array(im))
+        code = image_name.split('/')[-1].split('_')[1].split('.')[0]
+        code = [SPACE_INDEX if code == SPACE_TOKEN else encode_maps[c] for c in list(code)]
+        if 8 > len(code):
+          for i in range(8 - len(code)):
+            code.append(-1)
+        self.labels.append(code)
 
     self.num_examples = len(self.labels)
     self.shuffle_idx = self.shuffle_indexes()
