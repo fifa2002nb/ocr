@@ -48,7 +48,7 @@ def writeOCR(sc, input_images, input_labels, output, format, num_partitions):
 
   shape = images.shape
   print("images.shape: {0}".format(shape))          # 128000 x 120 x 45
-  print("labels.shape: {0}".format(labels.shape))   # 1000 x ?
+  print("labels.shape: {0}".format(labels.shape))   # 128000 x ?
 
   # create RDDs of vectors
   imageRDD = sc.parallelize(images.reshape(shape[0], shape[1] * shape[2]), num_partitions)

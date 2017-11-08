@@ -35,6 +35,7 @@ parser.add_argument("-l", "--labels", help="HDFS path to captcha labels in paral
 parser.add_argument("-m", "--model", help="HDFS path to save/load model during train/inference", default="lstm_ctc_ocr_model")
 parser.add_argument("-n", "--cluster_size", help="number of nodes in the cluster", type=int, default=num_executors)
 parser.add_argument("-o", "--output", help="HDFS path to save test/inference output", default="predictions")
+parser.add_argument("-s", "--steps", help="maximum number of steps", type=int, default=1000)
 parser.add_argument("-tb", "--tensorboard", help="launch tensorboard process", action="store_true")
 parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
@@ -53,7 +54,7 @@ dataRDD = images.zip(labels)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
-  cluster.train(dataRDD, args.epochs)
+  cluster.train(dataRDD, 1)
 else:
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
