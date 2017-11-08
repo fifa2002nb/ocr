@@ -85,7 +85,7 @@ def do_eval(sess, dense_decoded, lastbatch_err, learning_rate,
 def run_training():
   # Get the sets of images and labels for training, validation, and
   # test.
-  data_sets = input_data.read_data_sets(FLAGS.input_data_dir)
+  data_sets = input_data.read_data_sets(FLAGS.input_data_dir, fill_labels=False)
   # Tell TensorFlow that the model will be built into the default Graph.
   with tf.Graph().as_default():
     # Generate placeholders for the images, labels and seqlens.

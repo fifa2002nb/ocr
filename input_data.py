@@ -43,7 +43,7 @@ decode_maps[SPACE_INDEX] = SPACE_TOKEN
 
 class DataIterator:
   # data iterator
-  def __init__(self, data_dir):
+  def __init__(self, data_dir, fill_labels=False):
     self.images = []
     self.labels = []
     self.num_examples = 0
@@ -58,7 +58,7 @@ class DataIterator:
         self.images.append(np.array(im))
         code = image_name.split('/')[-1].split('_')[1].split('.')[0]
         code = [SPACE_INDEX if code == SPACE_TOKEN else encode_maps[c] for c in list(code)]
-        if 8 > len(code):
+        if fill_labels and 8 > len(code):
           for i in range(8 - len(code)):
             code.append(-1)
         self.labels.append(code)
@@ -183,14 +183,14 @@ class DataSets:
   pass
 
 
-def read_data_sets(input_data_dir, fake_data = False):
+def read_data_sets(input_data_dir, fake_data=False, fill_labels=False):
   data_sets = DataSets()
   if True == fake_data:
     return data_sets
 
-  data_sets.train = DataIterator(input_data_dir + "/train")
-  data_sets.validation = DataIterator(input_data_dir + "/validation")
-  data_sets.test = DataIterator(input_data_dir + "/test")
+  data_sets.train = DataIterator(input_data_dir + "/train", fill_labels)
+  data_sets.validation = DataIterator(input_data_dir + "/validation", fill_labels)
+  data_sets.test = DataIterator(input_data_dir + "/test", fill_labels)
   return data_sets
 
 
@@ -198,7 +198,7 @@ def read_data_sets(input_data_dir, fake_data = False):
 # for test
 if __name__ == "__main__":
   import input_data
-  data_sets = input_data.read_data_sets("/home/uaq/opbin/xuye/local/ocr_home/ocr/dataset", False)
+  data_sets = input_data.read_data_sets("/home/uaq/opbin/xuye/local/ocr_home/ocr/dataset", fill_labels=True)
   batch_inputs, batch_seq_len, batch_labels = data_sets.validation.next_batch(batch_size=10)
   print(batch_inputs.shape, len(data_sets.validation.images[0]), data_sets.validation.decode_sparse_tensor(batch_labels))
 
