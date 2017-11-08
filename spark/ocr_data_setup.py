@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
   parser.add_argument("-f", "--format", help="output format", choices=["csv"], default="csv")
-  parser.add_argument("-n", "--num-partitions", help="Number of output partitions", type=int, default=10)
+  parser.add_argument("-n", "--num-partitions", help="Number of output partitions", type=int, default=25)
   parser.add_argument("-o", "--output", help="HDFS directory to save examples in parallelized format", default="ocr_data")
   parser.add_argument("-r", "--read", help="read previously saved examples", action="store_true")
   parser.add_argument("-v", "--verify", help="verify saved examples after writing", action="store_true")

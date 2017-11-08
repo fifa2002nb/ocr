@@ -198,7 +198,7 @@ def read_data_sets(input_data_dir, fake_data=False, fill_labels=False):
 # for test
 if __name__ == "__main__":
   import input_data
-  data_sets = input_data.read_data_sets("/home/uaq/opbin/xuye/local/ocr_home/ocr/dataset", fill_labels=True)
+  data_sets = input_data.read_data_sets("/home/uaq/opbin/xuye/local/ocr_home/ocr/dataset", fill_labels=False)
   batch_inputs, batch_seq_len, batch_labels = data_sets.validation.next_batch(batch_size=10)
   print(batch_inputs.shape, len(data_sets.validation.images[0]), data_sets.validation.decode_sparse_tensor(batch_labels))
 

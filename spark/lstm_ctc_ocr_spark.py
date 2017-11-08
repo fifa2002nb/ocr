@@ -45,7 +45,7 @@ print("args:",args)
 print("{0} ===== Start".format(datetime.now().isoformat()))
 if args.format == "csv":
   images = sc.textFile(args.images).map(lambda ln: [int(x) for x in ln.split(',')])
-  labels = sc.textFile(args.labels).map(lambda ln: [float(x) for x in ln.split(',')])
+  labels = sc.textFile(args.labels).map(lambda ln: [int(x) for x in ln.split(',')])
 else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
