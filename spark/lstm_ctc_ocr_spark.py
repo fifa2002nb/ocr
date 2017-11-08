@@ -29,7 +29,7 @@ num_ps = 1
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--batch_size", help="number of records per batch", type=int, default=64)
 parser.add_argument("-e", "--epochs", help="number of epochs", type=int, default=1)
-parser.add_argument("-f", "--format", help="example format: (pickle)", choices=["pickle"], default="csv")
+parser.add_argument("-f", "--format", help="example format: (csv)", choices=["csv"], default="csv")
 parser.add_argument("-i", "--images", help="HDFS path to captcha images in parallelized format")
 parser.add_argument("-l", "--labels", help="HDFS path to captcha labels in parallelized format")
 parser.add_argument("-m", "--model", help="HDFS path to save/load model during train/inference", default="lstm_ctc_ocr_model")
@@ -49,7 +49,7 @@ if args.format == "csv":
 else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
-print("zipping images and labels")
+print("zipping images (size:%d) and labels (size:%d)" %(images.count(), labels.count()))
 dataRDD = images.zip(labels)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)

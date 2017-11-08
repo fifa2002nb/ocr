@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Functions for downloading and reading MNIST data."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -59,6 +58,9 @@ class DataIterator:
 		self.images.append(np.array(im))
 		code = image_name.split('/')[-1].split('_')[1].split('.')[0]
 		code = [SPACE_INDEX if code == SPACE_TOKEN else encode_maps[c] for c in list(code)]
+         if 8 > len(code):
+           for i in range(8 - len(code))
+             code.append(-1)
 		self.labels.append(code)
 
     self.num_examples = len(self.labels)
@@ -186,7 +188,7 @@ def read_data_sets(input_data_dir, fake_data = False):
   if True == fake_data:
     return data_sets
 
-  #data_sets.train = DataIterator(input_data_dir + "/train")
+  data_sets.train = DataIterator(input_data_dir + "/train")
   data_sets.validation = DataIterator(input_data_dir + "/validation")
   data_sets.test = DataIterator(input_data_dir + "/test")
   return data_sets
@@ -196,11 +198,11 @@ def read_data_sets(input_data_dir, fake_data = False):
 # for test
 if __name__ == "__main__":
   import input_data
-  data_sets = input_data.read_data_sets("/Users/miles/dev/python_workspace/ocr/dataset", False)
+  data_sets = input_data.read_data_sets("/home/uaq/opbin/xuye/local/ocr_home/ocr/dataset", False)
   batch_inputs, batch_seq_len, batch_labels = data_sets.validation.next_batch(batch_size=10)
   print(batch_inputs.shape, len(data_sets.validation.images[0]), data_sets.validation.decode_sparse_tensor(batch_labels))
 
-  #data_sets.train.dump_file(prefix="train")
+  data_sets.train.dump_file(prefix="train")
   data_sets.validation.dump_file(prefix="validation")
   images, labels = data_sets.validation.undump_file(prefix="validation")
   labels_np = np.array(labels)
