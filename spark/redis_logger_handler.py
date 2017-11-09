@@ -25,9 +25,8 @@ class redisPUBHandler(logging.Handler):
       self.redis_instance.publish(self.topic, msg)  
     except Exception, e:
       print(e)
-      self.pool = None
-      self.redis_instance = None
-      self.handleError(record)
+      pass
+      #self.handleError(record)
 
 
 if __name__ == '__main__':
