@@ -55,7 +55,7 @@ parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
 parser.add_argument("-z", "--zmqlogserver", help="zoremq logger server", default="10.10.100.34")
 args = parser.parse_args()
 
-logging.info("args:",args)
+logging.info(args)
 print("args:",args)
 logging.info("{0} ===== Start".format(datetime.now().isoformat()))
 print("{0} ===== Start".format(datetime.now().isoformat()))

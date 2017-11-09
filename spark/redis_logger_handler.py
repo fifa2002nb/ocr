@@ -23,7 +23,7 @@ class redisPUBHandler(logging.Handler):
       if None == self.redis_instance:
         self.__init__(self.topic, self.host, self.port, self.db)
       self.redis_instance.publish(self.topic, msg)  
-    except e:
+    except Exception, e:
       print(e)
       self.pool = None
       self.redis_instance = None
