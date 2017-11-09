@@ -21,7 +21,7 @@ from datetime import datetime
 from tensorflowonspark import TFCluster
 import lstm_ctc_ocr_dist
 import logging
-from . import redis_logger_handler
+import redis_logger_handler
 
 sc = SparkContext(conf=SparkConf().setAppName("lstm_ctc_ocr_spark"))
 executors = sc._conf.get("spark.executor.instances")

@@ -15,9 +15,9 @@ import numpy
 import tensorflow as tf
 import time
 import logging
-from . import lstm_ctc_ocr
-from . import redis_logger_handler
-  
+import lstm_ctc_ocr
+import redis_logger_handler
+
 def print_log(worker_num, arg):
   print("{0}: {1}".format(worker_num, arg))
 
