@@ -8,20 +8,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import nested_scopes
 from __future__ import print_function
-from tensorflowonspark import TFNode
-from datetime import datetime
-import math
-import numpy
-import tensorflow as tf
-import time
-import logging
-import lstm_ctc_ocr
-import redis_logger_handler
 
-def print_log(worker_num, arg):
-  print("{0}: {1}".format(worker_num, arg))
+def print_log(args, ctx):
+  import logging
+  import redis_logger_handler
+  redis_logger_handler.logging_setup(args.redis)
+  logging.info('print log..............................')
 
 def map_fun(args, ctx):
+  from tensorflowonspark import TFNode
+  from datetime import datetime
+  import math
+  import numpy
+  import tensorflow as tf
+  import time
+  import logging
+  import lstm_ctc_ocr
+  import redis_logger_handler
   redis_logger_handler.logging_setup(args.redis)
 
   worker_num = ctx.worker_num
