@@ -66,8 +66,8 @@ else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
 
-logging.info("zipping images (size:%d) and labels (size:%d)" %(images.count(), labels.count()))
-print("zipping images (size:%d) and labels (size:%d)" %(images.count(), labels.count()))
+logging.info("zipping images and labels")
+print("zipping images and labels")
 dataRDD = images.zip(labels)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
