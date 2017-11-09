@@ -23,8 +23,8 @@ def map_fun(args, ctx):
   import logging
   import redis_logger_handler
 
-  def logging_setup(worker_num, job_name, task_index):
-    redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", "10.10.100.14", 6379, 1)
+  def logging_setup(host, worker_num, job_name, task_index):
+    redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", host, 6379, 1)
     logging.basicConfig(
                 level       = logging.DEBUG,
                 format      = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
@@ -38,7 +38,7 @@ def map_fun(args, ctx):
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
 
-  logging_setup(work_name, job_name, task_index)
+  logging_setup(args.redis, work_name, job_name, task_index)
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
   if job_name == "ps":
     time.sleep((worker_num + 1) * 5)

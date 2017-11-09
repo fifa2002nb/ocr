@@ -23,16 +23,14 @@ import lstm_ctc_ocr_dist
 import logging
 import redis_logger_handler
 
-def logging_setup():
-  redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", "10.10.100.14", 6379, 1)
+def logging_setup(host):
+  redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", host, 6379, 1)
   logging.basicConfig(
             level       = logging.DEBUG,
             format      = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
             datefmt     = '[%y-%m-%d %H:%M:%S]',
           )
   logging.getLogger('').addHandler(redis_logger)
-
-logging_setup()
 
 sc = SparkContext(conf=SparkConf().setAppName("lstm_ctc_ocr_spark"))
 executors = sc._conf.get("spark.executor.instances")
@@ -52,8 +50,10 @@ parser.add_argument("-s", "--steps", help="maximum number of steps", type=int, d
 parser.add_argument("-tb", "--tensorboard", help="launch tensorboard process", action="store_true")
 parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
-parser.add_argument("-z", "--zmqlogserver", help="zoremq logger server", default="10.10.100.34")
+parser.add_argument("-r", "--redis", help="redis's host", default="10.10.100.14")
 args = parser.parse_args()
+
+logging_setup(args.redis)
 
 logging.info(args)
 print("args:",args)
