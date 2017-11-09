@@ -20,6 +20,18 @@ from datetime import datetime
 
 from tensorflowonspark import TFCluster
 import lstm_ctc_ocr_dist
+import redis_logger_handler
+
+def logging_setup():
+  redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", "10.10.100.14", 6379, 1)
+  logging.basicConfig(
+            level       = logging.DEBUG,
+            format      = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+            datefmt     = '[%y-%m-%d %H:%M:%S]',
+          )
+  logging.getLogger('').addHandler(redis_logger)
+
+logging_setup()
 
 sc = SparkContext(conf=SparkConf().setAppName("lstm_ctc_ocr_spark"))
 executors = sc._conf.get("spark.executor.instances")
@@ -41,8 +53,10 @@ parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
 parser.add_argument("-z", "--zmqlogserver", help="zoremq logger server", default="10.10.100.34")
 args = parser.parse_args()
-print("args:",args)
 
+logging.info("args:",args)
+print("args:",args)
+logging.info("{0} ===== Start".format(datetime.now().isoformat()))
 print("{0} ===== Start".format(datetime.now().isoformat()))
 if args.format == "csv":
   images = sc.textFile(args.images).map(lambda ln: [int(x) for x in ln.split(',')])
@@ -50,6 +64,8 @@ if args.format == "csv":
 else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
+
+logging.info("zipping images (size:%d) and labels (size:%d)" %(images.count(), labels.count()))
 print("zipping images (size:%d) and labels (size:%d)" %(images.count(), labels.count()))
 dataRDD = images.zip(labels)
 
@@ -61,5 +77,6 @@ else:
   labelRDD.saveAsTextFile(args.output)
 cluster.shutdown()
 
+logger.info("{0} ===== Stop".format(datetime.now().isoformat()))
 print("{0} ===== Stop".format(datetime.now().isoformat()))
 

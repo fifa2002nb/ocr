@@ -20,8 +20,8 @@ def map_fun(args, ctx):
   import tensorflow as tf
   import time
   import lstm_ctc_ocr
-  import redis
   import logging
+  import redis_logger_handler
 
   def logging_setup(worker_num, job_name, task_index):
     redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", "10.10.100.14", 6379, 1)
@@ -31,7 +31,7 @@ def map_fun(args, ctx):
                 datefmt     = '[%y-%m-%d %H:%M:%S]',
               )
     logging.getLogger('').addHandler(redis_logger)
-    logging.debug('work_name:%s job_name:%s task_index:%s ready.' %(work_name, job_name, task_index))
+    logging.info('work_name:%s job_name:%s task_index:%s ready.' %(work_name, job_name, task_index))
 
   worker_num = ctx.worker_num
   job_name = ctx.job_name

@@ -38,7 +38,7 @@ if __name__ == '__main__':
   for item in p.listen():      
     if item['type'] == 'message':    
       data = item['data']   
-      print data  
+      print(data)
     if item['data']=='over':  
       break;  
   p.unsubscribe('lstm_ctc_ocr')  
