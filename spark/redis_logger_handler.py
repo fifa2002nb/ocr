@@ -28,6 +28,15 @@ class redisPUBHandler(logging.Handler):
       pass
       #self.handleError(record)
 
+def logging_setup(host):
+  redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", host, 6379, 1)
+  logging.basicConfig(
+            level       = logging.DEBUG,
+            format      = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+            datefmt     = '[%y-%m-%d %H:%M:%S]',
+          )
+  logging.getLogger('').addHandler(redis_logger)
+
 
 if __name__ == '__main__':
   pool = redis.ConnectionPool(host='10.10.100.4', port=6379, db=1)  

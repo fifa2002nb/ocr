@@ -8,37 +8,28 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import nested_scopes
 from __future__ import print_function
-
+from tensorflowonspark import TFNode
+from datetime import datetime
+import math
+import numpy
+import tensorflow as tf
+import time
+import logging
+from . import lstm_ctc_ocr
+from . import redis_logger_handler
+  
 def print_log(worker_num, arg):
   print("{0}: {1}".format(worker_num, arg))
 
 def map_fun(args, ctx):
-  from tensorflowonspark import TFNode
-  from datetime import datetime
-  import math
-  import numpy
-  import tensorflow as tf
-  import time
-  import lstm_ctc_ocr
-  import logging
-  import redis_logger_handler
-
-  def logging_setup(host, worker_num, job_name, task_index):
-    redis_logger = redis_logger_handler.redisPUBHandler("lstm_ctc_ocr", host, 6379, 1)
-    logging.basicConfig(
-                level       = logging.DEBUG,
-                format      = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                datefmt     = '[%y-%m-%d %H:%M:%S]',
-              )
-    logging.getLogger('').addHandler(redis_logger)
-    logging.info('work_name:%s job_name:%s task_index:%s ready.' %(work_name, job_name, task_index))
+  redis_logger_handler.logging_setup(args.redis)
 
   worker_num = ctx.worker_num
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
 
-  logging_setup(args.redis, work_name, job_name, task_index)
+  logging.info('work_name:%s job_name:%s task_index:%s ready.' %(work_name, job_name, task_index))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
   if job_name == "ps":
     time.sleep((worker_num + 1) * 5)
