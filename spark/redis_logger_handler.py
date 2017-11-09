@@ -30,7 +30,7 @@ class redisPUBHandler(logging.Handler):
 
 
 if __name__ == '__main__':
-  pool = redis.ConnectionPool(host='10.10.100.14', port=6379, db=1)  
+  pool = redis.ConnectionPool(host='10.10.100.4', port=6379, db=1)  
   r = redis.StrictRedis(connection_pool=pool)  
   p = r.pubsub()  
   p.subscribe('lstm_ctc_ocr')  
