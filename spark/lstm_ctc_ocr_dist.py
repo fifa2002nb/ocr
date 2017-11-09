@@ -107,14 +107,14 @@ def map_fun(args, ctx):
     for i, origin_label in enumerate(ys):
       decoded_label  = [j for j in dd[i] if j != -1]
       if i < 10:
-        logging.debug('seq {0} => origin:{1} decoded:{2}'.format(i, origin_label, decoded_label))
+        logging.info('seq {0} => origin:{1} decoded:{2}'.format(i, origin_label, decoded_label))
         print('seq {0} => origin:{1} decoded:{2}'.format(i, origin_label, decoded_label))
       if origin_label == decoded_label: 
         true_count += 1
     #accuracy
     acc = true_count * 1.0 / len(ys)
     #print subsummary
-    logging.debug("---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(acc, lerr, lr))
+    logging.info("---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(acc, lerr, lr))
     print("---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(acc, lerr, lr)) 
 
 
@@ -156,7 +156,7 @@ def map_fun(args, ctx):
 
     # Create a "supervisor", which oversees the training process and stores model state into HDFS
     logdir = TFNode.hdfs_path(ctx, args.model)
-    logging.debug("tensorflow model path: {0}".format(logdir))
+    logging.info("tensorflow model path: {0}".format(logdir))
     print("tensorflow model path: {0}".format(logdir))
     summary_writer = tf.summary.FileWriter("tensorboard_%d" %(worker_num), graph=tf.get_default_graph())
 
@@ -181,7 +181,7 @@ def map_fun(args, ctx):
     # The supervisor takes care of session initialization, restoring from
     # a checkpoint, and closing when done or an error occurs.
     with sv.managed_session(server.target) as sess:
-      logging.debug("{0} session ready".format(datetime.now().isoformat()))
+      logging.info("{0} session ready".format(datetime.now().isoformat()))
       print("{0} session ready".format(datetime.now().isoformat()))
       start_time = time.time()
       # Loop until the supervisor shuts down or 1000000 steps have completed.
@@ -207,7 +207,7 @@ def map_fun(args, ctx):
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Print status to stdout.
-          logging.debug('[%s][global:%d step:%d/%d] loss = %.2f (%.3f sec)' % (datetime.now().isoformat(), 
+          logging.info('[%s][global:%d step:%d/%d] loss = %.2f (%.3f sec)' % (datetime.now().isoformat(), 
                                                 g_step, step_per_epoch, steps_per_epoch, loss_value, duration))
           print('[%s][global:%d step:%d/%d] loss = %.2f (%.3f sec)' % (datetime.now().isoformat(), 
                                                 g_step, step_per_epoch, steps_per_epoch, loss_value, duration))
@@ -220,7 +220,7 @@ def map_fun(args, ctx):
         # Save a checkpoint and evaluate the model periodically.
         if (g_step + 1) % 500 == 0 or (g_step + 1) == args.steps:
           # Evaluate against the validation set.
-          logging.debug('-------------------------- Validation Data Eval: --------------------------')
+          logging.info('-------------------------- Validation Data Eval: --------------------------')
           print('-------------------------- Validation Data Eval: --------------------------')
           do_eval(sess,
                   dense_decoded,
@@ -235,7 +235,7 @@ def map_fun(args, ctx):
         tf_feed.terminate()
 
     # Ask for all the services to stop.
-    logging.debug("{0} stopping supervisor".format(datetime.now().isoformat()))
+    logging.info("{0} stopping supervisor".format(datetime.now().isoformat()))
     print("{0} stopping supervisor".format(datetime.now().isoformat()))
     sv.stop()
 
