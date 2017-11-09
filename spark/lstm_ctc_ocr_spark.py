@@ -20,6 +20,7 @@ from datetime import datetime
 
 from tensorflowonspark import TFCluster
 import lstm_ctc_ocr_dist
+import logging
 import redis_logger_handler
 
 def logging_setup():
