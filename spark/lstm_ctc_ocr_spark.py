@@ -39,6 +39,7 @@ parser.add_argument("-s", "--steps", help="maximum number of steps", type=int, d
 parser.add_argument("-tb", "--tensorboard", help="launch tensorboard process", action="store_true")
 parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
+parser.add_argument("-z", "--zmqlogserver", help="zoremq logger server", default="10.10.100.34")
 args = parser.parse_args()
 print("args:",args)
 
