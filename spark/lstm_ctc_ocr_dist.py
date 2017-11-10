@@ -31,7 +31,7 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = 'worker:%s-%s-%s' %(worker_num, job_name, task_index)
+  worker_name = 'worker:%s-tf:%s-idx:%s' %(worker_num, job_name, task_index)
  
   logging.info('{0} running...'.format(worker_name))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
@@ -138,12 +138,12 @@ def map_fun(args, ctx):
                                       HIDDEN_UNITS)
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
-      logging.info("{0} tf.device after lstm_ctc_ocr.inference".format(worker_name))
       loss = lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
       # global counter
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
       #loss, initial_learning_rate, decay_steps, decay_rate, momentum
+      logging.info("{0} tf.device after lstm_ctc_ocr.loss".format(worker_name))
       train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
                                                       FLAGS.initial_learning_rate, 
                                                       FLAGS.decay_steps, 
