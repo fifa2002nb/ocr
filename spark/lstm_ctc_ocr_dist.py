@@ -31,7 +31,7 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = 'worker%s-%s-%s' %(worker_num, job_name, task_index)
+  worker_name = 'worker:%s-%s-%s' %(worker_num, job_name, task_index)
  
   logging.info('{0} running...'.format(worker_name))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
@@ -128,7 +128,6 @@ def map_fun(args, ctx):
     with tf.device(tf.train.replica_device_setter(
         worker_device="/job:worker/task:%d" % task_index,
         cluster=cluster)):
-      logging.info("{0} tf.device building model".format(worker_name))
       # Generate placeholders for the images, labels and seqlens.
       images_placeholder, labels_placeholder, seqlen_placeholder = placeholder_inputs(NUM_FEATURES)
       # Build a Graph that computes predictions from the inference model.
@@ -139,6 +138,7 @@ def map_fun(args, ctx):
                                       HIDDEN_UNITS)
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
+      logging.info("{0} tf.device after lstm_ctc_ocr.inference".format(worker_name))
       loss = lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
       # global counter
       global_step = tf.Variable(0, name='global_step', trainable=False)
