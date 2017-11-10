@@ -204,7 +204,7 @@ def map_fun(args, ctx):
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Print status to stdout.
-          logging.info('{0} [g_step:{1}] loss = {:.2f} ({:.3f} sec)'.format(worker_name, g_step, loss_value, duration))
+          logging.info('%s [g_step:%d] loss = %.2f (%.3f sec)' %(worker_name, g_step, loss_value, duration))
           # Update the events file.
           if sv.is_chief:
             summary = sess.run(summary_op, feed_dict=feed_dict)
