@@ -23,11 +23,24 @@ import lstm_ctc_ocr_dist
 import logging
 import redis_logger_handler
 
-def productDataRDD(images, labels, dataset_size, shuffle=False):
+def parseFile(images_path, labels_path, fmt):
+  if fmt == "csv":
+    images = sc.textFile(images_path).map(lambda ln: [int(x) for x in ln.split(',')])
+    labels = sc.textFile(labels_path).map(lambda ln: [int(x) for x in ln.split(',')])
+  else:
+    images = sc.pickleFile(images_path)
+    labels = sc.pickleFile(labels_path)
+  return images, labels
+
+def productDataRDD(images, labels, size, shuffle=False):
   if True == shuffle:
     shuffle_idx = numpy.random.permutation(dataset_size)
-    images = [images[i] for i in shuffle_idx]
-    labels = [labels[i] for i in shuffle_idx]
+    partitions = images.getNumPartitions()
+    images_arr = images.collect()
+    labels_arr = labels.collect()
+    images_arr = [images_arr[i] for i in shuffle_idx]
+    labels_arr = [labels_arr[i] for i in shuffle_idx]
+    images = sc.parallelize(images_arr, partitions)
   dataRDD = images.zip(labels)
   return dataRDD
 
@@ -61,12 +74,7 @@ args = parser.parse_args()
 redis_logger_handler.logging_setup(args.redis)
 
 logging.info("===== Start")
-if args.format == "csv":
-  images = sc.textFile(args.images).map(lambda ln: [int(x) for x in ln.split(',')])
-  labels = sc.textFile(args.labels).map(lambda ln: [int(x) for x in ln.split(',')])
-else:
-  images = sc.pickleFile(args.images)
-  labels = sc.pickleFile(args.labels)
+images, labels = parseFile(args.images, args.labels, args.format)
 
 dataset_size = labels.count()
 args.steps = dataset_size / args.batch_size
@@ -75,9 +83,9 @@ logging.info(args)
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
   for cur_epoch in range(args.epochs):
-    logging.info("running %dth epoch" %(cur_epoch))
+    logging.info("running %dth epoch..." %(cur_epoch))
     dataRDD = productDataRDD(images, labels, dataset_size, shuffle=True)
-    logging.info("product %dth epoch's RDD" %(cur_epoch))
+    logging.info("product %dth epoch RDD" %(cur_epoch))
     cluster.train(dataRDD, 1)
 else:
   dataRDD = productDataRDD(images, labels, dataset_size, shuffle=False)
