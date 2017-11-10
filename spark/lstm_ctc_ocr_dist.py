@@ -143,12 +143,12 @@ def map_fun(args, ctx):
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
       #loss, initial_learning_rate, decay_steps, decay_rate, momentum
-      logging.info("{0} tf.device after lstm_ctc_ocr.loss".format(worker_name))
       train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
                                                       FLAGS.initial_learning_rate, 
                                                       FLAGS.decay_steps, 
                                                       FLAGS.decay_rate, 
                                                       FLAGS.momentum)
+      logging.info("{0} tf.device after lstm_ctc_ocr.training".format(worker_name))
       # Add the Op to compare the logits to the labels during evaluation.
       dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
       summary_op = tf.summary.merge_all()
