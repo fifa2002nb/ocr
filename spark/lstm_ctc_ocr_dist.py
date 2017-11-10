@@ -76,7 +76,6 @@ def map_fun(args, ctx):
 
   def format_batch(data_set, batch_size, image_height, image_width):
     batch = data_set.next_batch(batch_size)
-    logging.info("{0} after data_set.next_batch".format(worker_name))
     images = []
     labels = []
     for item in batch:
@@ -84,7 +83,9 @@ def map_fun(args, ctx):
       labels.append(item[1])
     xs = numpy.array(images)
     # [batch_size, height * width] => [batch_size, height, width]
+    logging.info("{0} before reshape".format(worker_name))
     xs = xs.reshape(xs, [batch_size, image_height, image_width])
+    logging.info("{0} after reshape".format(worker_name))
     xs = xs.astype(numpy.float32)
     xs = xs / 255.
     ys = labels
