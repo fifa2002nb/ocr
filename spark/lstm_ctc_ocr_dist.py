@@ -181,7 +181,7 @@ def map_fun(args, ctx):
     # The supervisor takes care of session initialization, restoring from
     # a checkpoint, and closing when done or an error occurs.
     with sv.managed_session(server.target) as sess:
-      logging.info("{0} session ready".format(datetime.now().isoformat()))
+      logging.info("session ready")
       start_time = time.time()
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
@@ -193,6 +193,7 @@ def map_fun(args, ctx):
 
         # using feed_dict
         xs, ys = format_batch(tf_feed, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH)
+        logging.info("after format_batch xs:{0} ys:{1}".format(len(xs), len(ys)))
         feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
         # Run one step of the model.  The return values are the activations
         # from the `train_op` (which is discarded) and the `loss` Op.  To
