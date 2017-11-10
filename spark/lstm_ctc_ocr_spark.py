@@ -52,7 +52,6 @@ args = parser.parse_args()
 
 redis_logger_handler.logging_setup(args.redis)
 
-logging.info(args)
 logging.info("===== Start")
 if args.format == "csv":
   images = sc.textFile(args.images).map(lambda ln: [int(x) for x in ln.split(',')])
@@ -61,8 +60,10 @@ else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
 
+args.steps = labels.count() / args.batch_size
+logging.info(args)
 logging.info("zipping images and labels")
-print("zipping images and labels")
+
 dataRDD = images.zip(labels)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)

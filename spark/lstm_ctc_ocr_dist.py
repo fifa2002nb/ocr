@@ -231,7 +231,7 @@ def map_fun(args, ctx):
                   validation_xs,
                   validation_ys)
 
-      if sv.should_stop() or step >= args.steps:
+      if sv.should_stop() or g_step >= args.steps:
         tf_feed.terminate()
 
     # Ask for all the services to stop.
