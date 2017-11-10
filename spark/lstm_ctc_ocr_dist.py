@@ -180,6 +180,7 @@ def map_fun(args, ctx):
     # a checkpoint, and closing when done or an error occurs.
     validation_xs = None
     validation_ys = None
+    validation_batchs = 10
     with sv.managed_session(server.target) as sess:
       logging.info("{0} session ready".format(worker_name))
       start_time = time.time()
@@ -188,9 +189,9 @@ def map_fun(args, ctx):
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
       # for do_eval samples
       if None == validation_xs or None == validation_ys:
-        validation_xs, validation_ys = format_batch(tf_feed, args.batch_size * 10, IMAGE_HEIGHT, IMAGE_WIDTH)
+        validation_xs, validation_ys = format_batch(tf_feed, args.batch_size * validation_batchs, IMAGE_HEIGHT, IMAGE_WIDTH)
 
-      while not sv.should_stop() and not tf_feed.should_stop() and g_step < args.steps:
+      while not sv.should_stop() and not tf_feed.should_stop() and g_step < (args.steps * args.epochs - validation_batchs):
         # Run a training step asynchronously.
         # See `tf.train.SyncReplicasOptimizer` for additional details on how to
         # perform *synchronous* training.
@@ -210,7 +211,15 @@ def map_fun(args, ctx):
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Print status to stdout.
-          logging.info('%s [g_step:%d] loss = %.2f (%.3f sec)' %(worker_name, g_step, loss_value, duration))
+          logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
+                                                                        worker_name, 
+                                                                        g_step, 
+                                                                        g_step / args.steps,
+                                                                        args.epochs,
+                                                                        g_step % args.steps,
+                                                                        args.steps,
+                                                                        loss_value, 
+                                                                        duration))
           # Update the events file.
           if sv.is_chief:
             summary = sess.run(summary_op, feed_dict=feed_dict)
@@ -231,7 +240,8 @@ def map_fun(args, ctx):
                   validation_xs,
                   validation_ys)
 
-      if sv.should_stop() or g_step >= args.steps:
+      if sv.should_stop() or g_step >= (args.steps * args.epochs - validation_batchs):
+        logging.info("{0} terminating tf_feed".format(worker_name))
         tf_feed.terminate()
 
     # Ask for all the services to stop.

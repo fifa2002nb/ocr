@@ -23,6 +23,14 @@ import lstm_ctc_ocr_dist
 import logging
 import redis_logger_handler
 
+def productDataRDD(images, labels, dataset_size, shuffle=False):
+  if True == shuffle:
+    shuffle_idx = numpy.random.permutation(dataset_size)
+    images = [images[i] for i in shuffle_idx]
+    labels = [labels[i] for i in shuffle_idx]
+  dataRDD = images.zip(labels)
+  return dataRDD
+
 sc = SparkContext(conf=SparkConf().setAppName("lstm_ctc_ocr_spark"))
 executors = sc._conf.get("spark.executor.instances")
 num_executors = int(executors) if executors is not None else 1
@@ -60,16 +68,19 @@ else:
   images = sc.pickleFile(args.images)
   labels = sc.pickleFile(args.labels)
 
-args.steps = labels.count() / args.batch_size
+dataset_size = labels.count()
+args.steps = dataset_size / args.batch_size
 logging.info(args)
-logging.info("zipping images and labels")
-
-dataRDD = images.zip(labels)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
-  cluster.train(dataRDD, 1)
+  for cur_epoch in range(args.epochs):
+    logging.info("running %dth epoch" %(cur_epoch))
+    dataRDD = productDataRDD(images, labels, dataset_size, shuffle=True)
+    logging.info("product %dth epoch's RDD" %(cur_epoch))
+    cluster.train(dataRDD, 1)
 else:
+  dataRDD = productDataRDD(images, labels, dataset_size, shuffle=False)
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
 cluster.shutdown()
