@@ -31,8 +31,9 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-
-  logging.info('worker_num:%s job_name:%s task_index:%s running...' %(worker_num, job_name, task_index))
+  worker_name = '[worker:%s job:%s task:%s]' %(worker_num, job_name, task_index)
+ 
+  logging.info('{0} running...'.format(worker_name))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
   if job_name == "ps":
     time.sleep((worker_num + 1) * 5)
@@ -119,9 +120,10 @@ def map_fun(args, ctx):
 
 
   if job_name == "ps":
+    logging.info("{0} join to server.".format(worker_name))
     server.join()
   elif job_name == "worker":
-
+    logging.info("{0} start to train.".format(worker_name))
     # Assigns ops to the local worker by default.
     with tf.device(tf.train.replica_device_setter(
         worker_device="/job:worker/task:%d" % task_index,
