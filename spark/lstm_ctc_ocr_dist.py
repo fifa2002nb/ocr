@@ -115,7 +115,7 @@ def map_fun(args, ctx):
     #accuracy
     acc = true_count * 1.0 / len(ys)
     #print subsummary
-    logging.info("{0} ---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(worker_name, acc, lerr, lr))
+    logging.info("%s accuracy = %.3f, lastbatch_err = %.3f, learning_rate = %.8f" %(worker_name, acc, lerr, lr))
 
 
   if job_name == "ps":
@@ -220,7 +220,7 @@ def map_fun(args, ctx):
         # Save a checkpoint and evaluate the model periodically.
         if (g_step + 1) % 500 == 0 or (g_step + 1) == args.steps:
           # Evaluate against the validation set.
-          logging.info('{0}-------------------------- Validation Data Eval: --------------------------'.format(worker_name))
+          logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
           do_eval(sess,
                   dense_decoded,
                   lerr,
