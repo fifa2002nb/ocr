@@ -166,7 +166,7 @@ def map_fun(args, ctx):
                                saver=saver,
                                global_step=global_step,
                                stop_grace_secs=300,
-                               save_model_secs=10)
+                               save_model_secs=60)
     else:
       sv = tf.train.Supervisor(is_chief=(task_index == 0),
                                logdir=logdir,
