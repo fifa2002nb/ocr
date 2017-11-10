@@ -31,9 +31,15 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = 'worker-%s tf-%s idx-%s' %(worker_num, job_name, task_index)
+  worker_name = '(worker-%s tf-%s idx-%s)' %(worker_num, job_name, task_index)
  
-  logging.info('{0} running...'.format(worker_name))
+  logging.info('{0} batch_size:{1} initial_learning_rate:{2} decay_steps:{3} decay_rate:{4} momentum:{5}'
+                            .format(worker_name, 
+                              args.batch_size, 
+                              args.initial_learning_rate, 
+                              args.decay_steps, 
+                              args.decay_rate, 
+                              args.momentum))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
   if job_name == "ps":
     time.sleep((worker_num + 1) * 5)
@@ -104,14 +110,12 @@ def map_fun(args, ctx):
       decoded_label  = [j for j in dd[i] if j != -1]
       if i < 10:
         logging.info('seq {0} => origin:{1} decoded:{2}'.format(i, origin_label, decoded_label))
-        print('seq {0} => origin:{1} decoded:{2}'.format(i, origin_label, decoded_label))
       if origin_label == decoded_label: 
         true_count += 1
     #accuracy
     acc = true_count * 1.0 / len(ys)
     #print subsummary
     logging.info("---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(acc, lerr, lr))
-    print("---- accuracy = {:.3f}, lastbatch_err = {:.3f}, learning_rate = {:.8f} ----".format(acc, lerr, lr)) 
 
 
   if job_name == "ps":
@@ -143,7 +147,6 @@ def map_fun(args, ctx):
                                                       args.decay_steps, 
                                                       args.decay_rate, 
                                                       args.momentum)
-      logging.error("{0} tf.device after lstm_ctc_ocr.training".format(worker_name))
       # Add the Op to compare the logits to the labels during evaluation.
       dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
       summary_op = tf.summary.merge_all()
@@ -155,7 +158,6 @@ def map_fun(args, ctx):
     # Create a "supervisor", which oversees the training process and stores model state into HDFS
     logdir = TFNode.hdfs_path(ctx, args.model)
     logging.info("tensorflow model path: {0}".format(logdir))
-    print("tensorflow model path: {0}".format(logdir))
     summary_writer = tf.summary.FileWriter("tensorboard_%d" %(worker_num), graph=tf.get_default_graph())
 
     if args.mode == "train":
@@ -180,7 +182,6 @@ def map_fun(args, ctx):
     # a checkpoint, and closing when done or an error occurs.
     with sv.managed_session(server.target) as sess:
       logging.info("{0} session ready".format(datetime.now().isoformat()))
-      print("{0} session ready".format(datetime.now().isoformat()))
       start_time = time.time()
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
@@ -207,8 +208,6 @@ def map_fun(args, ctx):
           # Print status to stdout.
           logging.info('[%s][global:%d step:%d/%d] loss = %.2f (%.3f sec)' % (datetime.now().isoformat(), 
                                                 g_step, step_per_epoch, steps_per_epoch, loss_value, duration))
-          print('[%s][global:%d step:%d/%d] loss = %.2f (%.3f sec)' % (datetime.now().isoformat(), 
-                                                g_step, step_per_epoch, steps_per_epoch, loss_value, duration))
           # Update the events file.
           if sv.is_chief:
             summary = sess.run(summary_op, feed_dict=feed_dict)
@@ -219,7 +218,6 @@ def map_fun(args, ctx):
         if (g_step + 1) % 500 == 0 or (g_step + 1) == args.steps:
           # Evaluate against the validation set.
           logging.info('-------------------------- Validation Data Eval: --------------------------')
-          print('-------------------------- Validation Data Eval: --------------------------')
           do_eval(sess,
                   dense_decoded,
                   lerr,
@@ -234,6 +232,5 @@ def map_fun(args, ctx):
 
     # Ask for all the services to stop.
     logging.info("{0} stopping supervisor".format(datetime.now().isoformat()))
-    print("{0} stopping supervisor".format(datetime.now().isoformat()))
     sv.stop()
 
