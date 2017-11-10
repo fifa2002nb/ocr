@@ -31,7 +31,7 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = 'worker:%s-tf:%s-idx:%s' %(worker_num, job_name, task_index)
+  worker_name = 'worker-%s tf-%s idx-%s' %(worker_num, job_name, task_index)
  
   logging.info('{0} running...'.format(worker_name))
   # Delay PS nodes a bit, since workers seem to reserve GPUs more quickly/reliably (w/o conflict)
@@ -143,11 +143,14 @@ def map_fun(args, ctx):
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
       #loss, initial_learning_rate, decay_steps, decay_rate, momentum
-      train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
+      try:
+        train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
                                                       FLAGS.initial_learning_rate, 
                                                       FLAGS.decay_steps, 
                                                       FLAGS.decay_rate, 
                                                       FLAGS.momentum)
+      except Exception, e:
+        logging.error("{0} tf.device error when lstm_ctc_ocr.training".format(worker_name))
       logging.info("{0} tf.device after lstm_ctc_ocr.training".format(worker_name))
       # Add the Op to compare the logits to the labels during evaluation.
       dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
