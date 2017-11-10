@@ -32,18 +32,6 @@ def parseFile(images_path, labels_path, fmt):
     labels = sc.pickleFile(labels_path)
   return images, labels
 
-def productDataRDD(images, labels, size, shuffle=False):
-  if True == shuffle:
-    shuffle_idx = numpy.random.permutation(dataset_size)
-    partitions = images.getNumPartitions()
-    images_arr = images.collect()
-    labels_arr = labels.collect()
-    images_arr = [images_arr[i] for i in shuffle_idx]
-    labels_arr = [labels_arr[i] for i in shuffle_idx]
-    images = sc.parallelize(images_arr, partitions)
-  dataRDD = images.zip(labels)
-  return dataRDD
-
 sc = SparkContext(conf=SparkConf().setAppName("lstm_ctc_ocr_spark"))
 executors = sc._conf.get("spark.executor.instances")
 num_executors = int(executors) if executors is not None else 1
@@ -72,23 +60,20 @@ parser.add_argument("-hu", "--hidden_units", help="Number of units in LSTM hidde
 args = parser.parse_args()
 
 redis_logger_handler.logging_setup(args.redis)
-
 logging.info("===== Start")
+
 images, labels = parseFile(args.images, args.labels, args.format)
+dataRDD = images.zip(labels)
 
 dataset_size = labels.count()
 args.steps = dataset_size / args.batch_size
+
 logging.info(args)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
-  for cur_epoch in range(args.epochs):
-    logging.info("running %dth epoch..." %(cur_epoch))
-    dataRDD = productDataRDD(images, labels, dataset_size, shuffle=True)
-    logging.info("product %dth epoch RDD" %(cur_epoch))
-    cluster.train(dataRDD, 1)
+  cluster.train(dataRDD, args.epochs)
 else:
-  dataRDD = productDataRDD(images, labels, dataset_size, shuffle=False)
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
 cluster.shutdown()
