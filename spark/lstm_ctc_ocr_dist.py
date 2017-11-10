@@ -75,12 +75,8 @@ def map_fun(args, ctx):
     return images_placeholder, labels_placeholder, seqlen_placeholder
 
   def format_batch(data_set, batch_size, image_height, image_width):
-    batch = None
-    try:
-      batch = data_set.next_batch(batch_size)
-    except Exception, e:
-      logging.error("{0} {1}".format(worker_name, e))
-      raise
+    batch = data_set.next_batch(batch_size)
+    logging.info("{0} after data_set.next_batch".format(worker_name))
     images = []
     labels = []
     for item in batch:
