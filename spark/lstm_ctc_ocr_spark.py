@@ -53,9 +53,7 @@ args = parser.parse_args()
 redis_logger_handler.logging_setup(args.redis)
 
 logging.info(args)
-print("args:",args)
-logging.info("{0} ===== Start".format(datetime.now().isoformat()))
-print("{0} ===== Start".format(datetime.now().isoformat()))
+logging.info("===== Start")
 if args.format == "csv":
   images = sc.textFile(args.images).map(lambda ln: [int(x) for x in ln.split(',')])
   labels = sc.textFile(args.labels).map(lambda ln: [int(x) for x in ln.split(',')])

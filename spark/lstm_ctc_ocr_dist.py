@@ -31,7 +31,7 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = '(worker-%s tf-%s idx-%s)' %(worker_num, job_name, task_index)
+  worker_name = 'worker:%s-tf:%s-idx:%s' %(worker_num, job_name, task_index)
  
   logging.info('{0} batch_size:{1} initial_learning_rate:{2} decay_steps:{3} decay_rate:{4} momentum:{5}'
                             .format(worker_name, 
@@ -119,10 +119,8 @@ def map_fun(args, ctx):
 
 
   if job_name == "ps":
-    logging.info("{0} join to server".format(worker_name))
     server.join()
   elif job_name == "worker":
-    logging.info("{0} start to train".format(worker_name))
     # Assigns ops to the local worker by default.
     with tf.device(tf.train.replica_device_setter(
         worker_device="/job:worker/task:%d" % task_index,
@@ -192,8 +190,8 @@ def map_fun(args, ctx):
         # perform *synchronous* training.
 
         # using feed_dict
+        logging.info("{0} using feed_dict".format(worker_name))
         xs, ys = format_batch(tf_feed, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH)
-        logging.info("after format_batch xs:{0} ys:{1}".format(len(xs), len(ys)))
         feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
         # Run one step of the model.  The return values are the activations
         # from the `train_op` (which is discarded) and the `loss` Op.  To
