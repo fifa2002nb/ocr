@@ -24,8 +24,8 @@ def map_fun(args, ctx):
   import time
   import logging
   import lstm_ctc_ocr
-  import redis_logger_handler
-  redis_logger_handler.logging_setup(args.redis)
+  #import redis_logger_handler
+  #redis_logger_handler.logging_setup(args.redis)
 
   worker_num = ctx.worker_num
   job_name = ctx.job_name
