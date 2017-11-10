@@ -31,7 +31,7 @@ def map_fun(args, ctx):
   job_name = ctx.job_name
   task_index = ctx.task_index
   cluster_spec = ctx.cluster_spec
-  worker_name = '(worker:%s/tf:%s/idx:%s)' %(worker_num, job_name, task_index)
+  worker_name = '(worker:%s tf:%s idx:%s)' %(worker_num, job_name, task_index)
  
   logging.info('{0} batch_size:{1} initial_learning_rate:{2} decay_steps:{3} decay_rate:{4} momentum:{5}'
                             .format(worker_name, 
@@ -204,7 +204,7 @@ def map_fun(args, ctx):
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Print status to stdout.
-          logging.info('{0} [g_step:%d] loss = %.2f (%.3f sec)' % (worker_name, g_step, loss_value, duration))
+          logging.info('{0} [g_step:{1}] loss = {:.2f} ({:.3f} sec)'.format(worker_name, g_step, loss_value, duration))
           # Update the events file.
           if sv.is_chief:
             summary = sess.run(summary_op, feed_dict=feed_dict)
