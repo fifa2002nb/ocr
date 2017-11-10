@@ -83,7 +83,7 @@ def map_fun(args, ctx):
       labels.append(item[1])
     xs = numpy.array(images)
     # [batch_size, height * width] => [batch_size, height, width]
-    xs = xs.reshape(xs, (batch_size, image_height, image_width))
+    xs = xs.reshape(batch_size, image_height, image_width)
     logging.info("{0} after reshape {1} => {2} x {3}".format(worker_name, xs.shape, image_height, image_width))
     xs = xs.astype(numpy.float32)
     xs = xs / 255.
