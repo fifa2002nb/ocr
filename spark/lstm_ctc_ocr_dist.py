@@ -44,11 +44,6 @@ def map_fun(args, ctx):
   IMAGE_HEIGHT = 45
   NUM_FEATURES = IMAGE_HEIGHT * CHANNELS
 
-  NUM_LAYERS = 2
-  HIDDEN_UNITS = 128
-  
-  batch_size   = args.batch_size
-
   # Get TF cluster and server instances
   cluster, server = TFNode.start_cluster_server(ctx, 1, args.rdma)
 
@@ -134,8 +129,8 @@ def map_fun(args, ctx):
       #images_lp, seqlen_lp, num_features, num_layers, hidden_units
       logits = lstm_ctc_ocr.inference(images_placeholder, 
                                       seqlen_placeholder,
-                                      NUM_LAYERS,
-                                      HIDDEN_UNITS)
+                                      args.num_layers,
+                                      args.hidden_units)
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
       loss = lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
@@ -143,15 +138,12 @@ def map_fun(args, ctx):
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
       #loss, initial_learning_rate, decay_steps, decay_rate, momentum
-      try:
-        train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
-                                                      FLAGS.initial_learning_rate, 
-                                                      FLAGS.decay_steps, 
-                                                      FLAGS.decay_rate, 
-                                                      FLAGS.momentum)
-      except Exception, e:
-        logging.error("{0} tf.device error when lstm_ctc_ocr.training".format(worker_name))
-      logging.info("{0} tf.device after lstm_ctc_ocr.training".format(worker_name))
+      train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
+                                                      args.initial_learning_rate,
+                                                      args.decay_steps, 
+                                                      args.decay_rate, 
+                                                      args.momentum)
+      logging.error("{0} tf.device after lstm_ctc_ocr.training".format(worker_name))
       # Add the Op to compare the logits to the labels during evaluation.
       dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
       summary_op = tf.summary.merge_all()
@@ -199,7 +191,7 @@ def map_fun(args, ctx):
         # perform *synchronous* training.
 
         # using feed_dict
-        xs, ys = format_batch(tf_feed, batch_size, IMAGE_HEIGHT, IMAGE_WIDTH)
+        xs, ys = format_batch(tf_feed, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH)
         feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
         # Run one step of the model.  The return values are the activations
         # from the `train_op` (which is discarded) and the `loss` Op.  To
