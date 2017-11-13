@@ -194,30 +194,34 @@ def map_fun(args, ctx):
       g_step = 0
       validation_samples = None
       train_samples = None
-
+      shuffle_idx = None
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
       # for do_eval samples
       if None == validation_samples:
         validation_samples = fetch_batch(tf_feed, args.test_size)
         logging.info("{0} fetch validation_samples:{1}".format(worker_name, len(validation_samples)))
-      if None == train_samples:
-        train_samples = fetch_batch(tf_feed, args.train_size)
-        logging.info("{0} fetch train_samples:{1}".format(worker_name, len(train_samples)))
 
       for cur_epoch in xrange(args.epochs):
-        start_time = time.time()
+        if 0 == cur_epoch:
+          train_samples = []
+        else:
+          args.train_size = len(train_samples)
+          shuffle_idx = shuffle_indexes(args.train_size) 
 
-        steps_per_epoch = args.train_size / args.batch_size
-        
-        shuffle_idx = shuffle_indexes(args.train_size)   
+        start_time = time.time()
+        steps_per_epoch = args.train_size / args.batch_size 
 
         for step_per_epoch in xrange(steps_per_epoch):
           if sv.should_stop():
             break
 
-          cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
-          
-          xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
+          if 0 == cur_epoch:
+            samples = fetch_batch(tf_feed, args.batch_size)
+            train_samples = train_samples.append(samples)
+            xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
+          else:
+            cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
+            xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
           
           feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
           # Run one step of the model.  The return values are the activations
