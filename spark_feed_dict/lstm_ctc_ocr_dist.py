@@ -197,9 +197,9 @@ def map_fun(args, ctx):
 
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
       # for do_eval samples
-      if None == validation_xs or None == validation_ys:
+      if None == validation_samples:
         validation_samples = fetch_batch(tf_feed, args.test_size)
-      if None == train_xs or None == train_ys:
+      if None == train_samples:
         train_samples = fetch_batch(tf_feed, args.train_size)
 
       logging.info("{0} fetch val_samples:{1} train_samples:{2}".format(worker_name, len(validation_samples), len(train_samples)))
