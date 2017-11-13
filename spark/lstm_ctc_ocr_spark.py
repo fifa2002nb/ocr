@@ -42,7 +42,10 @@ parser.add_argument("-b", "--batch_size", help="number of records per batch", ty
 parser.add_argument("-e", "--epochs", help="number of epochs", type=int, default=1)
 parser.add_argument("-f", "--format", help="example format: (csv)", choices=["csv"], default="csv")
 parser.add_argument("-i", "--images", help="HDFS path to captcha images in parallelized format")
+parser.add_argument("-it", "--images_test", help="HDFS path to captcha images in parallelized format")
 parser.add_argument("-l", "--labels", help="HDFS path to captcha labels in parallelized format")
+parser.add_argument("-lt", "--labels_test", help="HDFS path to captcha labels in parallelized format")
+parser.add_argument("-ts", "--test_size", type=int, default=1000)
 parser.add_argument("-m", "--model", help="HDFS path to save/load model during train/inference", default="lstm_ctc_ocr_model")
 parser.add_argument("-n", "--cluster_size", help="number of nodes in the cluster", type=int, default=num_executors)
 parser.add_argument("-o", "--output", help="HDFS path to save test/inference output", default="predictions")
@@ -64,14 +67,21 @@ logging.info("===== Start")
 
 images, labels = parseFile(args.images, args.labels, args.format)
 dataRDD = images.zip(labels)
-
 dataset_size = labels.count()
 args.steps = dataset_size / args.batch_size
+
+images_test, labels_test = parseFile(args.images_test, args.labels_test, args.format)
+dataRDD_test = images_test.zip(labels_test)
+args.test_size = labels_test.count()
 
 logging.info(args)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
+  # put test samples 
+  cluster.train(dataRDD_test, 1)
+  # run epochs
+  logging.info("running epochs")
   for i in range(args.epochs):
     cluster.train(dataRDD, 1)
     logging.info("shuffling the dataRDD")
