@@ -51,7 +51,7 @@ parser.add_argument("-tb", "--tensorboard", help="launch tensorboard process", a
 parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
 parser.add_argument("-r", "--redis", help="redis's host", default="10.10.100.4")
-parser.add_argument("-ilr", "--initial_learning_rate", help="Initial learning rate.", type=float, default=1e-3)
+parser.add_argument("-ilr", "--initial_learning_rate", help="Initial learning rate.", type=float, default=2e-3)
 parser.add_argument("-dr", "--decay_rate", help="the learning rate\'s decay rate.", type=float, default=0.9)
 parser.add_argument("-ds", "--decay_steps", help="the learning rate\'s decay_step for optimizer.", type=int, default=1000)
 parser.add_argument("-mo", "--momentum", help="the momentum.", type=float, default=0.9)

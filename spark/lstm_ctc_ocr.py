@@ -93,8 +93,8 @@ def training(loss, global_step, initial_learning_rate, decay_steps, decay_rate, 
   tf.summary.scalar('loss', loss)
 
   # Create the gradient descent optimizer with the given learning rate.
-  optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate, momentum=momentum)
-  #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
+  #optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate, momentum=momentum)
+  optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
 
   # Use the optimizer to apply the gradients that minimize the loss
   train_op = optimizer.minimize(loss, global_step=global_step)
