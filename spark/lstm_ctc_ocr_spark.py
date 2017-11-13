@@ -76,8 +76,8 @@ if args.mode == "train":
     cluster.train(dataRDD, 1)
     logging.info("shuffling the dataRDD")
     partitions = dataRDD.getNumPartitions()
-    # shuffle
     dataRDD = dataRDD.repartition(partitions) 
+    logging.info("shuffled the dataRDD")
 else:
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
