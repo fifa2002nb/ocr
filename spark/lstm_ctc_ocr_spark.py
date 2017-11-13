@@ -49,7 +49,7 @@ parser.add_argument("-ts", "--test_size", type=int, default=1000)
 parser.add_argument("-m", "--model", help="HDFS path to save/load model during train/inference", default="lstm_ctc_ocr_model")
 parser.add_argument("-n", "--cluster_size", help="number of nodes in the cluster", type=int, default=num_executors)
 parser.add_argument("-o", "--output", help="HDFS path to save test/inference output", default="predictions")
-parser.add_argument("-s", "--steps", help="maximum number of steps", type=int, default=1000)
+parser.add_argument("-s", "--train_size", help="maximum size of train samples", type=int, default=1000)
 parser.add_argument("-tb", "--tensorboard", help="launch tensorboard process", action="store_true")
 parser.add_argument("-X", "--mode", help="train|inference", default="train")
 parser.add_argument("-c", "--rdma", help="use rdma connection", default=False)
@@ -67,8 +67,7 @@ logging.info("===== Start")
 
 images, labels = parseFile(args.images, args.labels, args.format)
 dataRDD = images.zip(labels)
-dataset_size = labels.count()
-args.steps = dataset_size / args.batch_size
+args.train_size = labels.count()
 
 images_test, labels_test = parseFile(args.images_test, args.labels_test, args.format)
 dataRDD_test = images_test.zip(labels_test)
@@ -80,14 +79,7 @@ cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, 
 if args.mode == "train":
   # put test samples 
   cluster.train(dataRDD_test, 1)
-  # run epochs
-  logging.info("running epochs")
-  for i in range(args.epochs):
-    cluster.train(dataRDD, 1)
-    logging.info("shuffling the dataRDD")
-    partitions = dataRDD.getNumPartitions()
-    dataRDD = dataRDD.repartition(partitions) 
-    logging.info("shuffled the dataRDD")
+  cluster.train(dataRDD, 1)
 else:
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)

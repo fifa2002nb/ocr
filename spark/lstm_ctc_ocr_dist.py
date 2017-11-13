@@ -180,6 +180,7 @@ def map_fun(args, ctx):
     # a checkpoint, and closing when done or an error occurs.
     validation_xs = None
     validation_ys = None
+    steps = args.train_size / args.batch_size
     with sv.managed_session(server.target) as sess:
       logging.info("{0} session ready".format(worker_name))
       start_time = time.time()
@@ -190,7 +191,7 @@ def map_fun(args, ctx):
       if None == validation_xs or None == validation_ys:
         validation_xs, validation_ys = format_batch(tf_feed, args.test_size, IMAGE_HEIGHT, IMAGE_WIDTH)
 
-      while not sv.should_stop() and not tf_feed.should_stop() and g_step < (args.steps * args.epochs):
+      while not sv.should_stop() and not tf_feed.should_stop() and g_step < (steps * args.epochs):
         # Run a training step asynchronously.
         # See `tf.train.SyncReplicasOptimizer` for additional details on how to
         # perform *synchronous* training.
@@ -213,10 +214,10 @@ def map_fun(args, ctx):
           logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
                                                                         g_step, 
-                                                                        g_step / args.steps,
+                                                                        g_step / steps,
                                                                         args.epochs,
-                                                                        g_step % args.steps,
-                                                                        args.steps,
+                                                                        g_step % steps,
+                                                                        steps,
                                                                         loss_value, 
                                                                         duration))
           # Update the events file.
@@ -226,7 +227,7 @@ def map_fun(args, ctx):
             summary_writer.flush()
 
         # Save a checkpoint and evaluate the model periodically.
-        if (g_step + 1) % 500 == 0 or (g_step + 1) == args.steps:
+        if (g_step + 1) % 500 == 0 or (g_step + 1) == steps:
           # Evaluate against the validation set.
           logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
           do_eval(sess,
@@ -239,7 +240,7 @@ def map_fun(args, ctx):
                   validation_xs,
                   validation_ys)
 
-      if sv.should_stop() or g_step >= (args.steps * args.epochs):
+      if sv.should_stop() or g_step >= (steps * args.epochs):
         logging.info("{0} terminating tf_feed".format(worker_name))
         tf_feed.terminate()
 
