@@ -74,13 +74,23 @@ def map_fun(args, ctx):
     seqlen_placeholder = tf.placeholder(tf.int32, [None])
     return images_placeholder, labels_placeholder, seqlen_placeholder
 
-  def format_batch(data_set, batch_size, image_height, image_width):
-    batch = data_set.next_batch(batch_size)
+  def shuffle_indexes(num):
+    return np.random.permutation(num)
+
+  def fetch_batch(data_set, batch_size):
+    return data_set.next_batch(batch_size)
+
+  def format_batch(batch, batch_size, image_height, image_width, index=None):
     images = []
     labels = []
-    for item in batch:
-      images.append(item[0])
-      labels.append(item[1])
+    if index:
+      for idx in index:
+        images.append(batch[idx][0])
+        labels.append(batch[idx][1])
+    else:
+      for item in batch:
+        images.append(item[0])
+        labels.append(item[1])
     xs = numpy.array(images)
     # [batch_size, height * width] => [batch_size, height, width]
     xs = xs.reshape(batch_size, image_width, image_height)
@@ -123,8 +133,8 @@ def map_fun(args, ctx):
   elif job_name == "worker":
     # Assigns ops to the local worker by default.
     with tf.device(tf.train.replica_device_setter(
-        worker_device="/job:worker/task:%d" % task_index,
-        cluster=cluster)):
+                                      worker_device="/job:worker/task:%d" % task_index,
+                                      cluster=cluster)):
       # Generate placeholders for the images, labels and seqlens.
       images_placeholder, labels_placeholder, seqlen_placeholder = placeholder_inputs(NUM_FEATURES)
       # Build a Graph that computes predictions from the inference model.
@@ -178,46 +188,56 @@ def map_fun(args, ctx):
 
     # The supervisor takes care of session initialization, restoring from
     # a checkpoint, and closing when done or an error occurs.
-    validation_xs = None
-    validation_ys = None
-    steps = args.train_size / args.batch_size
     with sv.managed_session(server.target) as sess:
       logging.info("{0} session ready".format(worker_name))
-      start_time = time.time()
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
+      validation_samples = None
+      train_samples = None
+
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
       # for do_eval samples
       if None == validation_xs or None == validation_ys:
-        validation_xs, validation_ys = format_batch(tf_feed, args.test_size, IMAGE_HEIGHT, IMAGE_WIDTH)
+        validation_samples = fetch_batch(tf_feed, args.test_size)
+      if None == train_xs or None == train_ys:
+        train_samples = fetch_batch(tf_feed, args.train_size)
 
-      while not sv.should_stop() and not tf_feed.should_stop() and g_step < (steps * args.epochs):
-        # Run a training step asynchronously.
-        # See `tf.train.SyncReplicasOptimizer` for additional details on how to
-        # perform *synchronous* training.
+      logging.info("{0} fetch val_samples:{1} train_samples:{2}".format(worker_name, len(validation_samples), len(train_samples)))
+      for cur_epoch in xrange(args.epochs):
+        start_time = time.time()
 
-        # using feed_dict
-        xs, ys = format_batch(tf_feed, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH)
-        feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
-        # Run one step of the model.  The return values are the activations
-        # from the `train_op` (which is discarded) and the `loss` Op.  To
-        # inspect the values of your Ops or variables, you may include them
-        # in the list passed to sess.run() and the value tensors will be
-        # returned in the tuple from the call.
-        _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
+        steps_per_epoch = args.train_size / args.batch_size
+        
+        shuffle_idx = shuffle_indexes(args.train_size)   
 
-        duration = time.time() - start_time
+        for step_per_epoch in xrange(steps_per_epoch):
+          if sv.should_stop():
+            break
 
-        # Write the summaries and print an overview fairly often.
-        if g_step % 100 == 0:
-          # Print status to stdout.
-          logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
+          cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
+          
+          xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
+          
+          feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
+          # Run one step of the model.  The return values are the activations
+          # from the `train_op` (which is discarded) and the `loss` Op.  To
+          # inspect the values of your Ops or variables, you may include them
+          # in the list passed to sess.run() and the value tensors will be
+          # returned in the tuple from the call.
+          _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
+
+          duration = time.time() - start_time
+
+          # Write the summaries and print an overview fairly often.
+          if g_step % 100 == 0:
+            # Print status to stdout.
+            logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
                                                                         g_step, 
-                                                                        g_step / steps,
+                                                                        step_per_epoch,
                                                                         args.epochs,
-                                                                        g_step % steps,
-                                                                        steps,
+                                                                        step_per_epoch,
+                                                                        steps_per_epoch,
                                                                         loss_value, 
                                                                         duration))
           # Update the events file.
@@ -226,23 +246,23 @@ def map_fun(args, ctx):
             summary_writer.add_summary(summary, g_step)
             summary_writer.flush()
 
-        # Save a checkpoint and evaluate the model periodically.
-        if (g_step + 1) % 500 == 0 or (g_step + 1) == steps:
-          # Evaluate against the validation set.
-          logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
-          do_eval(sess,
-                  dense_decoded,
-                  lerr,
-                  learning_rate,
-                  images_placeholder,
-                  labels_placeholder,
-                  seqlen_placeholder,
-                  validation_xs,
-                  validation_ys)
-
-      if sv.should_stop() or g_step >= (steps * args.epochs):
-        logging.info("{0} terminating tf_feed".format(worker_name))
-        tf_feed.terminate()
+          # Save a checkpoint and evaluate the model periodically.
+          if (g_step + 1) % 500 == 0:
+            # Evaluate against the validation set.
+            logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
+            validation_xs, validation_ys = format_batch(validation_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
+            do_eval(sess,
+                    dense_decoded,
+                    lerr,
+                    learning_rate,
+                    images_placeholder,
+                    labels_placeholder,
+                    seqlen_placeholder,
+                    validation_xs,
+                    validation_ys)
+      
+      logging.info("{0} terminating tf_feed".format(worker_name))
+      tf_feed.terminate()
 
     # Ask for all the services to stop.
     logging.info("{0} stopping supervisor".format(worker_name))
