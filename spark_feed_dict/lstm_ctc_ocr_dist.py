@@ -199,10 +199,11 @@ def map_fun(args, ctx):
       # for do_eval samples
       if None == validation_samples:
         validation_samples = fetch_batch(tf_feed, args.test_size)
+        logging.info("{0} fetch validation_samples:{1}".format(worker_name, len(validation_samples)))
       if None == train_samples:
         train_samples = fetch_batch(tf_feed, args.train_size)
+        logging.info("{0} fetch train_samples:{1}".format(worker_name, len(train_samples)))
 
-      logging.info("{0} fetch val_samples:{1} train_samples:{2}".format(worker_name, len(validation_samples), len(train_samples)))
       for cur_epoch in xrange(args.epochs):
         start_time = time.time()
 
