@@ -73,10 +73,11 @@ logging.info(args)
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
   for i in range(args.epochs):
+    cluster.train(dataRDD, 1)
+    logging.info("shuffling the dataRDD")
     partitions = dataRDD.getNumPartitions()
     # shuffle
     dataRDD = dataRDD.repartition(partitions) 
-    cluster.train(dataRDD, 1)
 else:
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
