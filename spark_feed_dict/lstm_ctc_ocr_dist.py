@@ -216,9 +216,12 @@ def map_fun(args, ctx):
             break
 
           if 0 == cur_epoch:
+            logging.info("aaaaa")
             samples = fetch_batch(tf_feed, args.batch_size)
+            logging.info("bbbbb")
             train_samples = train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
+            logging.info("ccccc")
           else:
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
             xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
@@ -236,7 +239,6 @@ def map_fun(args, ctx):
           # Write the summaries and print an overview fairly often.
           if g_step % 100 == 0:
             # Print status to stdout.
-            logging.info('aaaaaaaaa')
             logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
                                                                         g_step, 
