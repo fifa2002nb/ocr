@@ -218,6 +218,8 @@ def map_fun(args, ctx):
             train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
           else:
+            if (step_per_epoch + 1) * args.batch_size > args.train_size:
+              break
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
             xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
           
@@ -253,7 +255,7 @@ def map_fun(args, ctx):
           if (g_step + 1) % 500 == 0:
             # Evaluate against the validation set.
             logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
-            validation_xs, validation_ys = format_batch(validation_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
+            validation_xs, validation_ys = format_batch(validation_samples, args.test_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
             do_eval(sess,
                     dense_decoded,
                     lerr,
