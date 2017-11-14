@@ -75,7 +75,7 @@ def map_fun(args, ctx):
     return images_placeholder, labels_placeholder, seqlen_placeholder
 
   def shuffle_indexes(num):
-    return np.random.permutation(num)
+    return numpy.random.permutation(num)
 
   def fetch_batch(data_set, batch_size):
     return data_set.next_batch(batch_size)
