@@ -255,7 +255,7 @@ def map_fun(args, ctx):
             summary_writer.flush()
 
           # Save a checkpoint and evaluate the model periodically.
-          if (step_per_epoch + 1) % 500 == 0:
+          if (step_per_epoch + 1) % 800 == 0:
             # Evaluate against the validation set.
             logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
             validation_xs, validation_ys = format_batch(validation_samples, args.test_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
