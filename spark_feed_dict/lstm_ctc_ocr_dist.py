@@ -240,7 +240,7 @@ def map_fun(args, ctx):
             logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
                                                                         g_step, 
-                                                                        step_per_epoch,
+                                                                        cur_epoch,
                                                                         args.epochs,
                                                                         step_per_epoch,
                                                                         steps_per_epoch,
