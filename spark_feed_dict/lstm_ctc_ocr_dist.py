@@ -193,7 +193,7 @@ def map_fun(args, ctx):
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
       validation_samples = None
-      train_samples = None
+      train_samples = []
       shuffle_idx = None
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
       # for do_eval samples
@@ -202,9 +202,7 @@ def map_fun(args, ctx):
         logging.info("{0} fetch validation_samples:{1}".format(worker_name, len(validation_samples)))
 
       for cur_epoch in xrange(args.epochs):
-        if 0 == cur_epoch:
-          train_samples = []
-        else:
+        if 0 < cur_epoch:
           args.train_size = len(train_samples)
           shuffle_idx = shuffle_indexes(args.train_size) 
 
