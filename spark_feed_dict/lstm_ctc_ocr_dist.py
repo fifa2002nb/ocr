@@ -207,21 +207,25 @@ def map_fun(args, ctx):
         else:
           args.train_size = len(train_samples)
           shuffle_idx = shuffle_indexes(args.train_size) 
-        logging.info("aaaaaa")
+
         start_time = time.time()
         steps_per_epoch = args.train_size / args.batch_size 
-
+        logging.info("aaaaaa")
         for step_per_epoch in xrange(steps_per_epoch):
           if sv.should_stop():
             break
-
+          logging.info("bbbbbbb")
           if 0 == cur_epoch:
+            logging.info("eeeeee")
             samples = fetch_batch(tf_feed, args.batch_size)
             train_samples = train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
+            logging.info("ccccccc")
           else:
+            logging.info("ffffff")
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
             xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
+            logging.info("ddddddd")
           
           feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder)
           # Run one step of the model.  The return values are the activations
