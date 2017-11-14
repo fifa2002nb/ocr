@@ -215,7 +215,7 @@ def map_fun(args, ctx):
 
           if 0 == cur_epoch:
             samples = fetch_batch(tf_feed, args.batch_size)
-            train_samples = train_samples.append(samples)
+            train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
           else:
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
