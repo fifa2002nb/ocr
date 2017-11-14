@@ -192,6 +192,7 @@ def map_fun(args, ctx):
       logging.info("{0} session ready".format(worker_name))
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
+      g_train_size = args.train_size - args.test_size
       validation_samples = None
       train_samples = []
       shuffle_idx = None
@@ -208,14 +209,15 @@ def map_fun(args, ctx):
 
         start_time = time.time()
         steps_per_epoch = int(args.train_size / args.batch_size)
-
+        logging.info("{0} epoch:{1} train_size:{2} batch_size:{3}".format(worker_name, cur_epoch, args.train_size, args.batch_size))
         for step_per_epoch in xrange(steps_per_epoch):
-          if sv.should_stop():
+          if sv.should_stop() or (0 == cur_epoch and ((g_step + 1) * args.batch_size) > g_train_size):
             break
 
           if 0 == cur_epoch:
             samples = fetch_batch(tf_feed, args.batch_size)
-            train_samples.append(samples)
+            for item in samples:
+              train_samples.append(item)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
           else:
             if (step_per_epoch + 1) * args.batch_size > args.train_size:
@@ -237,7 +239,7 @@ def map_fun(args, ctx):
           # Write the summaries and print an overview fairly often.
           if step_per_epoch % 100 == 0:
             # Print status to stdout.
-            logging.info('%s [global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
+            logging.info('%s [g_step:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
                                                                         g_step, 
                                                                         cur_epoch,
