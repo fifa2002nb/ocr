@@ -218,9 +218,9 @@ def map_fun(args, ctx):
             train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
           else:
-            _ = fetch_batch(tf_feed, args.batch_size)
             if (step_per_epoch + 1) * args.batch_size > args.train_size:
               break
+            _ = fetch_batch(tf_feed, args.batch_size)
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
             xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
           
