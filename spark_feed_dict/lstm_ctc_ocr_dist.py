@@ -207,7 +207,7 @@ def map_fun(args, ctx):
         else:
           args.train_size = len(train_samples)
           shuffle_idx = shuffle_indexes(args.train_size) 
-
+        logging.info("aaaaaa")
         start_time = time.time()
         steps_per_epoch = args.train_size / args.batch_size 
 
@@ -216,12 +216,9 @@ def map_fun(args, ctx):
             break
 
           if 0 == cur_epoch:
-            logging.info("aaaaa")
             samples = fetch_batch(tf_feed, args.batch_size)
-            logging.info("bbbbb")
             train_samples = train_samples.append(samples)
             xs, ys = format_batch(samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
-            logging.info("ccccc")
           else:
             cur_indexes = [shuffle_idx[i % args.train_size] for i in range(step_per_epoch * args.batch_size, (step_per_epoch + 1) * args.batch_size)]
             xs, ys = format_batch(train_samples, args.batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=cur_indexes)
