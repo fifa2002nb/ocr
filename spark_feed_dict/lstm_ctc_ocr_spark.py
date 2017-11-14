@@ -71,7 +71,7 @@ logging.info(args)
 
 cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
-  cluster.train(dataRDD, 1)
+  cluster.train(dataRDD, args.epochs)
 else:
   labelRDD = cluster.inference(dataRDD)
   labelRDD.saveAsTextFile(args.output)
