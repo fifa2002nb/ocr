@@ -237,7 +237,7 @@ def map_fun(args, ctx):
           duration = time.time() - start_time
 
           # Write the summaries and print an overview fairly often.
-          if step_per_epoch % 100 == 0:
+          if g_step % 100 == 0:
             # Print status to stdout.
             logging.info('%s [g_step:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
@@ -255,7 +255,7 @@ def map_fun(args, ctx):
             summary_writer.flush()
 
           # Save a checkpoint and evaluate the model periodically.
-          if (step_per_epoch + 1) % 500 == 0:
+          if (g_step + 1) % 500 == 0:
             # Evaluate against the validation set.
             logging.info('{0} ---- Validation Data Eval: ----'.format(worker_name))
             validation_xs, validation_ys = format_batch(validation_samples, args.test_size, IMAGE_HEIGHT, IMAGE_WIDTH, index=None)
