@@ -22,6 +22,7 @@ import numpy as np
 import random
 import cv2
 import pickle
+import base64
 
 CHANNELS = 1
 IMAGE_WIDTH = 120
@@ -183,17 +184,38 @@ class DataSets:
   pass
 
 
-def read_data_sets(input_data_dir, fake_data=False, fill_labels=False):
+def read_data_sets(input_data_dir, train=True, fake_data=False, fill_labels=False):
   data_sets = DataSets()
   if True == fake_data:
     return data_sets
 
-  data_sets.train = DataIterator(input_data_dir + "/train", fill_labels)
-  data_sets.validation = DataIterator(input_data_dir + "/validation", fill_labels)
-  data_sets.test = DataIterator(input_data_dir + "/test", fill_labels)
+  if train:
+    data_sets.train = DataIterator(input_data_dir + "/train", fill_labels)
+    data_sets.validation = DataIterator(input_data_dir + "/validation", fill_labels)
+  else:
+    data_sets.test = DataIterator(input_data_dir + "/test", fill_labels)
   return data_sets
 
+def read_image_data(file_path):
+  def sparse_tuple_from_label(sequences, dtype=np.int32):
+    indices = []
+    values = []
+    for n, seq in enumerate(sequences):
+      indices.extend(zip([n] * len(seq), range(len(seq))))
+      values.extend(seq)
+    indices = np.asarray(indices, dtype=np.int64)
+    values = np.asarray(values, dtype=dtype)
+    shape = np.asarray([len(sequences), np.asarray(indices).max(0)[1] + 1], dtype=np.int64)
+    return indices, values, shape
 
+  im = cv2.imread(file_path, 0)
+  im = cv2.resize(im, (IMAGE_WIDTH, IMAGE_HEIGHT))
+  im = im.swapaxes(0, 1)
+  images = np.array([im])
+  batch_inputs = images.astype(np.float32) / 255.
+  batch_seq_len = np.asarray([len(s) for s in batch_inputs], dtype=np.int64)
+  batch_labels = sparse_tuple_from_label([[10, 10]])
+  return batch_inputs, batch_seq_len, batch_labels
 
 # for test
 if __name__ == "__main__":
