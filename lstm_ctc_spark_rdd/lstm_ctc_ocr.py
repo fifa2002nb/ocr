@@ -83,7 +83,10 @@ def loss(logits, labels_pl, seqlen_pl):
 
 def training(loss, global_step, initial_learning_rate, decay_steps, decay_rate, momentum):
   # Create a variable to track the global step.
-  #global_step = tf.Variable(0, name='global_step', trainable=False)
+  '''
+  decayed_learning_rate = learning_rate *
+                        decay_rate ^ (global_step / decay_steps)
+  '''
   learning_rate = tf.train.exponential_decay(initial_learning_rate,
                                             global_step, 
                                             decay_steps,
@@ -95,6 +98,7 @@ def training(loss, global_step, initial_learning_rate, decay_steps, decay_rate, 
   # Create the gradient descent optimizer with the given learning rate.
   optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate, momentum=momentum)
   #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
+  #optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=0.9, beta2=0.999)
 
   # Use the optimizer to apply the gradients that minimize the loss
   train_op = optimizer.minimize(loss, global_step=global_step)

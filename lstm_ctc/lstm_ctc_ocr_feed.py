@@ -40,8 +40,9 @@ def placeholder_inputs(num_features):
   # Here we use sparse_placeholder that will generate a
   # SparseTensor required by ctc_loss op.
   labels_placeholder = tf.sparse_placeholder(tf.int32)
-  # 1d array of size [batch_size]
+  # 1d array of size [image_size]
   seqlen_placeholder = tf.placeholder(tf.int32, [None])
+
   return images_placeholder, labels_placeholder, seqlen_placeholder
 
 
