@@ -106,7 +106,6 @@ def run_training():
     images_placeholder, labels_placeholder, seqlen_placeholder, keep_prob = placeholder_inputs(input_data.IMAGE_WIDTH,
                                                                                               input_data.IMAGE_HEIGHT,
                                                                                               input_data.CHANNELS)
-
     # Build a Graph that computes predictions from the inference model.
     #images_lp, seqlen_lp, num_features, num_layers, hidden_units
     logits, sequence_length = cnn_lstm_ctc_ocr.inference(images_placeholder, 
@@ -114,10 +113,10 @@ def run_training():
                                                     keep_prob,
                                                     FLAGS.hidden_units, 
                                                     FLAGS.mode)
-  
     # Add to the Graph the Ops for loss calculation.
     #logits, labels_lp, seqlen_lp
     loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, sequence_length)
+    tf.summary.scalar('loss', loss)
     # global counter
     global_step = tf.Variable(0, name='global_step', trainable=False)
     # Add to the Graph the Ops that calculate and apply gradients.
@@ -127,28 +126,22 @@ def run_training():
                                                         FLAGS.decay_steps, 
                                                         FLAGS.decay_rate, 
                                                         FLAGS.momentum)
-
+    tf.summary.scalar('learning_rate', learning_rate)
     # Add the Op to compare the logits to the labels during evaluation.
     #logits, labels_lp, seqlen_lp
     dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
-
+    tf.summary.scalar('lerr', lerr)
     # Build the summary Tensor based on the TF collection of Summaries.
     summary = tf.summary.merge_all()
 
     # Add the variable initializer Op.
     init = tf.global_variables_initializer()
-
     # Create a saver for writing training checkpoints.
     saver = tf.train.Saver()
-
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
-
     # Instantiate a SummaryWriter to output summaries and the Graph.
     summary_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
-
-    # And then after everything is built:
-
     # Run the Op to initialize the variables.
     sess.run(init)
 
@@ -176,7 +169,13 @@ def run_training():
         _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
 
         duration = time.time() - start_time
-
+        print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
+                                                                              cur_epoch, 
+                                                                              FLAGS.max_steps,
+                                                                              step_per_epoch,
+                                                                              steps_per_epoch, 
+                                                                              loss_value, 
+                                                                              duration))
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Print status to stdout.
