@@ -91,9 +91,6 @@ def training(loss, global_step, initial_learning_rate, decay_steps, decay_rate, 
                                             global_step, 
                                             decay_steps,
                                             decay_rate, staircase=True)
-  
-  # Add a scalar summary for the snapshot loss.
-  tf.scalar_summary('loss', loss)  
   # Create the gradient descent optimizer with the given learning rate.
   #optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate, momentum=momentum)
   #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
@@ -114,8 +111,6 @@ def evaluation(logits, labels_pl, seqlen_pl):
   # Inaccuracy: label error rate
   lerr = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32), labels_pl))
 
-  tf.scalar_summary('lerr', lerr)  
-  
   return dense_decoded, lerr
 
 

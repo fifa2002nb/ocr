@@ -136,6 +136,7 @@ def map_fun(args, ctx):
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
       loss = lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
+      tf.summary.scalar('loss', loss)
       # global counter
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
@@ -147,7 +148,9 @@ def map_fun(args, ctx):
                                                       args.momentum)
       # Add the Op to compare the logits to the labels during evaluation.
       dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
-      summary_op = tf.merge_all_summaries()  
+      tf.summary.scalar('lerr', lerr)
+      
+      summary_op = tf.summary.merge_all()
       # Add the variable initializer Op.
       init_op = tf.global_variables_initializer()
       # Create a saver for writing training checkpoints.
@@ -156,7 +159,7 @@ def map_fun(args, ctx):
     # Create a "supervisor", which oversees the training process and stores model state into HDFS
     logdir = TFNode.hdfs_path(ctx, args.model)
     logging.info("{0} tensorflow model path: {1}".format(worker_name, logdir))
-    summary_writer = tf.train.SummaryWriter("tensorboard_%d" %(worker_num), graph=tf.get_default_graph())  
+    summary_writer = tf.summary.FileWriter("tensorboard_%d" %(worker_num), graph=tf.get_default_graph())
 
     if args.mode == "train":
       sv = tf.train.Supervisor(is_chief=(task_index == 0),
@@ -204,7 +207,7 @@ def map_fun(args, ctx):
         # inspect the values of your Ops or variables, you may include them
         # in the list passed to sess.run() and the value tensors will be
         # returned in the tuple from the call.
-        summary, _, loss_value, g_step = sess.run([summary_op, train_op, loss, global_step], feed_dict=feed_dict)
+        _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
 
         duration = time.time() - start_time
 
@@ -222,7 +225,9 @@ def map_fun(args, ctx):
                                                                         duration))
           # Update the events file.
           if sv.is_chief:
+            summary = sess.run(summary_op, feed_dict=feed_dict)
             summary_writer.add_summary(summary, g_step)
+            summary_writer.flush()
 
         # Save a checkpoint and evaluate the model periodically.
         if (g_step + 1) % 500 == 0 or (g_step + 1) == args.steps:
