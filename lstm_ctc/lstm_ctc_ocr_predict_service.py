@@ -141,9 +141,8 @@ def run_ocr_service():
 
 
 def main(_):
-  threading.Thread(target=run_ocr_service).start()
-
   if tf.gfile.Exists(FLAGS.checkpoint_dir):
+    threading.Thread(target=run_ocr_service).start()
     run_perdict()
   else:
     print('{0} not existed.'.format(FLAGS.checkpoint_dir))

@@ -41,4 +41,4 @@ def run(num, path):
 if __name__ == '__main__':
     run(64 * 2000, 'train')
     run(1000, 'validation')
-    run(1000, 'test')
+    #run(1, 'test')

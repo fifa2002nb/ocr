@@ -64,7 +64,7 @@ def pool_layer(stack, pool_size, strides, padding, name):
   return stack
 
 def norm_layer(stack, training, name):
-  # [filter_height, filter_width, in_channels, out_channels]
+  # [filter_height, filter_width, in_channels, out_channels] or [batch_size, height, width, channels] ?
   # channels last => axis=3
   stack = tf.layers.batch_normalization(stack, axis=3, training=training, name=name)
   return stack
