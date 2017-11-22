@@ -129,7 +129,7 @@ def run_training():
     tf.summary.scalar('learning_rate', learning_rate)
     # Add the Op to compare the logits to the labels during evaluation.
     #logits, labels_lp, seqlen_lp
-    dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
+    dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, sequence_length)
     tf.summary.scalar('lerr', lerr)
     # Build the summary Tensor based on the TF collection of Summaries.
     summary = tf.summary.merge_all()

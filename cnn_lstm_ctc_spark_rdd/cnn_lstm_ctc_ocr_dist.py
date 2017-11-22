@@ -23,7 +23,7 @@ def map_fun(args, ctx):
   import tensorflow as tf
   import time
   import logging
-  import lstm_ctc_ocr
+  import cnn_lstm_ctc_ocr
   #import redis_logger_handler
   #redis_logger_handler.logging_setup(args.redis)
 
@@ -110,7 +110,7 @@ def map_fun(args, ctx):
 
   def do_eval(sess, dense_decoded, lastbatch_err, learning_rate, 
               images_placeholder, labels_placeholder, seqlen_placeholder, 
-              keep_prob, train=True,
+              keep_prob, train,
               xs, ys):
     true_count = 0  # Counts the number of correct predictions.
     feed_dict = fill_feed_dict(xs, ys, images_placeholder, labels_placeholder, seqlen_placeholder, keep_prob, train)
@@ -139,26 +139,26 @@ def map_fun(args, ctx):
       images_placeholder, labels_placeholder, seqlen_placeholder, keep_prob = placeholder_inputs(IMAGE_WIDTH, IMAGE_HEIGHT, CHANNELS)
       # Build a Graph that computes predictions from the inference model.
       #images_lp, seqlen_lp, num_features, num_layers, hidden_units
-      logits = lstm_ctc_ocr.inference(images_placeholder, 
-                                      seqlen_placeholder,
-                                      keep_prob,
-                                      args.hidden_units,
-                                      args.mode)
+      logits, sequence_length = cnn_lstm_ctc_ocr.inference(images_placeholder, 
+                                                          seqlen_placeholder,
+                                                          keep_prob,
+                                                          args.hidden_units,
+                                                          args.mode)
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
-      loss = lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
+      loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, sequence_length)
       tf.summary.scalar('loss', loss)
       # global counter
       global_step = tf.Variable(0, name='global_step', trainable=False)
       # Add to the Graph the Ops that calculate and apply gradients.
       #loss, initial_learning_rate, decay_steps, decay_rate, momentum
-      train_op, learning_rate = lstm_ctc_ocr.training(loss, global_step, 
-                                                      args.initial_learning_rate,
-                                                      args.decay_steps, 
-                                                      args.decay_rate, 
-                                                      args.momentum)
+      train_op, learning_rate = cnn_lstm_ctc_ocr.training(loss, global_step, 
+                                                          args.initial_learning_rate,
+                                                          args.decay_steps, 
+                                                          args.decay_rate, 
+                                                          args.momentum)
       # Add the Op to compare the logits to the labels during evaluation.
-      dense_decoded, lerr = lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
+      dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, sequence_length)
       tf.summary.scalar('lerr', lerr)
       
       summary_op = tf.summary.merge_all()
@@ -197,10 +197,10 @@ def map_fun(args, ctx):
     validation_batchs = 10
     with sv.managed_session(server.target) as sess:
       logging.info("{0} session ready".format(worker_name))
-      start_time = time.time()
       # Loop until the supervisor shuts down or 1000000 steps have completed.
       g_step = 0
       tf_feed = TFNode.DataFeed(ctx.mgr, args.mode == "train")
+      start_time = time.time()
       # for do_eval samples
       if None == validation_xs or None == validation_ys:
         validation_xs, validation_ys = format_batch(tf_feed, args.batch_size * validation_batchs, 
@@ -221,10 +221,10 @@ def map_fun(args, ctx):
         # returned in the tuple from the call.
         _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
 
-        duration = time.time() - start_time
-
         # Write the summaries and print an overview fairly often.
-        if g_step % 100 == 0:
+        if (g_step + 1) % 10 == 0:
+          duration = time.time() - start_time
+          start_time = time.time()
           # Print status to stdout.
           logging.info('%s [g_step:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
@@ -235,6 +235,7 @@ def map_fun(args, ctx):
                                                                         args.steps,
                                                                         loss_value, 
                                                                         duration))
+        if (g_step + 1) % 100 == 0:
           # Update the events file.
           if sv.is_chief:
             summary = sess.run(summary_op, feed_dict=feed_dict)

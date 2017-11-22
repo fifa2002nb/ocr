@@ -212,7 +212,7 @@ def map_fun(args, ctx):
         duration = time.time() - start_time
 
         # Write the summaries and print an overview fairly often.
-        if g_step % 100 == 0:
+        if (g_step + 1) % 100 == 0:
           # Print status to stdout.
           logging.info('%s [g_step:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 

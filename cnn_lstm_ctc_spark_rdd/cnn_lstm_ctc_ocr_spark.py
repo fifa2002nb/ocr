@@ -19,7 +19,7 @@ import time
 from datetime import datetime
 
 from tensorflowonspark import TFCluster
-import lstm_ctc_ocr_dist
+import cnn_lstm_ctc_ocr_dist
 import logging
 import redis_logger_handler
 
@@ -68,7 +68,7 @@ args.steps = dataset_size / args.batch_size
 
 logging.info(args)
 
-cluster = TFCluster.run(sc, lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
+cluster = TFCluster.run(sc, cnn_lstm_ctc_ocr_dist.map_fun, args, args.cluster_size, num_ps, args.tensorboard, TFCluster.InputMode.SPARK)
 if args.mode == "train":
   cluster.train(dataRDD, args.epochs)
 else:
