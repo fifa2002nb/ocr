@@ -36,7 +36,7 @@ FLAGS = None
 # num_features = IMAGE_HEIGHT
 def placeholder_inputs(image_width, image_height, channels):
   # [batch_size, image_width, image_height]
-  images_placeholder = tf.placeholder(tf.float32, [None, image_height, image_width, channels])
+  images_placeholder = tf.placeholder(tf.float32, [None, image_width, image_height, channels])
   # Here we use sparse_placeholder that will generate a
   # SparseTensor required by ctc_loss op.
   labels_placeholder = tf.sparse_placeholder(tf.int32)
@@ -51,7 +51,7 @@ def fill_feed_dict(data_set, images_pl, labels_pl, seqlen_pl, keep_prob, all_dat
   images_feed, seqlen_feed, labels_feed = data_set.next_batch(FLAGS.batch_size, 
                                                               FLAGS.fake_data, 
                                                               all_data)
-  images_feed = images_feed.reshape(-1, input_data.IMAGE_HEIGHT, input_data.IMAGE_WIDTH, input_data.CHANNELS)
+  images_feed = images_feed.reshape(-1, input_data.IMAGE_WIDTH, input_data.IMAGE_HEIGHT, input_data.CHANNELS)
   if all_data:
     feed_dict = {
         images_pl: images_feed,
@@ -108,15 +108,14 @@ def run_training():
                                                                                               input_data.CHANNELS)
     # Build a Graph that computes predictions from the inference model.
     #images_lp, seqlen_lp, num_features, num_layers, hidden_units
-    logits = cnn_lstm_ctc_ocr.inference(images_placeholder, 
-                                        seqlen_placeholder,
-                                        keep_prob,
-                                        FLAGS.hidden_units, 
-                                        FLAGS.mode,
-                                        FLAGS.batch_size)
+    logits, sequence_length = cnn_lstm_ctc_ocr.inference(images_placeholder, 
+                                                    seqlen_placeholder,
+                                                    keep_prob,
+                                                    FLAGS.hidden_units, 
+                                                    FLAGS.mode)
     # Add to the Graph the Ops for loss calculation.
     #logits, labels_lp, seqlen_lp
-    loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
+    loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, sequence_length)
     tf.summary.scalar('loss', loss)
     # global counter
     global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -130,7 +129,7 @@ def run_training():
     tf.summary.scalar('learning_rate', learning_rate)
     # Add the Op to compare the logits to the labels during evaluation.
     #logits, labels_lp, seqlen_lp
-    dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
+    dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, sequence_length)
     tf.summary.scalar('lerr', lerr)
     # Build the summary Tensor based on the TF collection of Summaries.
     summary = tf.summary.merge_all()
@@ -169,10 +168,10 @@ def run_training():
         # returned in the tuple from the call.
         _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
 
-        #if g_step % 10 == 0:
-        duration = time.time() - start_time
-        start_time = time.time()
-        print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
+        if g_step % 10 == 0:
+          duration = time.time() - start_time
+          start_time = time.time()
+          print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
                                                                               cur_epoch, 
                                                                               FLAGS.max_steps,
                                                                               step_per_epoch,

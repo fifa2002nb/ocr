@@ -43,7 +43,7 @@ def conv_layer(stack, params, training):
   else:
     activation = tf.nn.relu
 
-  kernel_initializer = tf.contrib.layers.variance_scaling_initializer()
+  kernel_initializer = tf.contrib.layers.xavier_initializer()
   bias_initializer = tf.constant_initializer(value=0.0)
   stack = tf.layers.conv2d(stack, 
                           filters=params[0],
@@ -64,87 +64,75 @@ def pool_layer(stack, pool_size, strides, padding, name):
   return stack
 
 def norm_layer(stack, training, name):
-  # [filter_height, filter_width, in_channels, out_channels] or [batch_size, height, width, channels] ?
+  # [filter_height, filter_width, in_channels, out_channels]
   # channels last => axis=3
   stack = tf.layers.batch_normalization(stack, axis=3, training=training, name=name)
   return stack
 
-def convnet_layers(images_pl, seqlen_pl, mode):
+def convnet_layers(images_pl, mode):
   training = (mode == "train")
-  with tf.name_scope('convnet'):
-    # images shape [-1, 120, 45, 1]
-    # [filters, kernel_size, padding, name, batch_norm]
-    # out_height=(input_height-filter_height+2*padding)/stride+1
-    conv1 = conv_layer(images_pl, [64, 3, 'same', 'conv1', False], training)  # -1,120,45,64
-    conv2 = conv_layer(conv1, [64, 3, 'same', 'conv2', True], training)       # -1,120,45,64
-    pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,60,22,64
-    conv3 = conv_layer(pool2, [128, 3, 'same', 'conv3', False], training)     # -1,60,22,128
-    conv4 = conv_layer(conv3, [128, 3, 'same', 'conv4', True], training)      # -1,60,22,128
-    pool4 = pool_layer(conv4, 2, [1, 2], 'valid', 'pool4')                    # -1,59,11,128
-    conv5 = conv_layer(pool4, [256, 3, 'same', 'conv5', False], training)     # -1,59,11,256
-    conv6 = conv_layer(conv5, [256, 3, 'same', 'conv6', True], training)      # -1,59,11,256
-    pool6 = pool_layer(conv6, 2, [1, 2], 'valid', 'pool6')                    # -1,58,5,256
-    conv7 = conv_layer(pool6, [512, 3, 'same', 'conv7', False], training)     # -1,58,5,512
-    conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,58,5,512
-    pool8 = pool_layer(conv8, [1, 5], [1, 5], 'valid', 'pool8')               # -1,58,1,512
-    features = tf.squeeze(pool8, axis=2, name='features') # squeeze row dim.  # -1,58,512
-    # Calculate resulting sequence length from original image widths
-    conv1_trim = tf.constant(2, dtype=tf.int32, name='conv1_trim')
-    one = tf.constant(1, dtype=tf.int32, name='one')
-    two = tf.constant(2, dtype=tf.int32, name='two')
-    after_conv1 = tf.subtract(seqlen_pl, conv1_trim)
-    after_pool2 = tf.floor_div(after_conv1, two )
-    after_pool4 = tf.subtract(after_pool2, one)
-    sequence_length = tf.reshape(after_pool4, [-1], name='seq_len') # Vectorize
-
-    return features, sequence_length
-
-def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope):
-    weight_initializer = tf.truncated_normal_initializer(stddev=0.01)
-    # Default activation is tanh
-    cell_fw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
-    cell_bw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
-    #cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=keep_prob)
-    #cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=keep_prob)
-
-    rnn_output, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
-                                                    cell_bw, 
-                                                    bottom_sequence,
-                                                    sequence_length=sequence_length,
-                                                    time_major=True,
-                                                    dtype=tf.float32,
-                                                    scope=scope)
-    # Concatenation allows a single output op because [A B]*[x;y] = Ax+By
-    # [ paddedSeqLen batchSize 2*rnn_size]
-    rnn_output_stack = tf.concat(rnn_output, 2, name='output_stack')
-
-    return rnn_output_stack
-
-def run_layers(features, sequence_length, keep_prob, hidden_units):
-  logit_activation = tf.nn.relu
-  weight_initializer = tf.contrib.layers.variance_scaling_initializer()
-  bias_initializer = tf.constant_initializer(value=0.0)
-
-  with tf.variable_scope("rnn"):
-    # Transpose to time-major order for efficiency
-    rnn_sequence = tf.transpose(features, perm=[1, 0, 2], name='time_major')
-    rnn1 = rnn_layer(rnn_sequence, sequence_length, keep_prob, hidden_units, 'bdrnn1')
-    rnn2 = rnn_layer(rnn1, sequence_length, keep_prob, hidden_units, 'bdrnn2')
-    rnn_logits = tf.layers.dense(rnn2, 
-                                NUM_CLASSES, 
-                                activation=logit_activation,
-                                kernel_initializer=weight_initializer,
-                                bias_initializer=bias_initializer,
-                                name='logits')
-  return rnn_logits
+  # images shape [-1, 45, 120, 1]
+  with tf.variable_scope('cnn'):
+    with tf.variable_scope('unit-1'):
+      x = conv_layer(images_pl, [64, 3, 'same', 'conv1', True], training) # -1,45,120,64
+      x = pool_layer(x, 2, [2, 2], 'same', 'pool2')                       # -1,23,60,64
+    with tf.variable_scope('unit-2'):
+      x = conv_layer(x, [128, 3, 'same', 'conv2', True], training)        # -1,23,60,128  
+      x = pool_layer(x, 2, [2, 2], 'same', 'pool2')                       # -1,12,30,128
+    with tf.variable_scope('unit-3'):
+      x = conv_layer(x, [128, 3, 'same', 'conv3', True], training)        # -1,12,30,128
+      x = pool_layer(x, 2, [2, 2], 'same', 'pool3')                       # -1,6,15,128
+    with tf.variable_scope('unit-4'):
+      x = conv_layer(x, [256, 3, 'same', 'conv4', True], training)        # -1,6,15,256
+      x = pool_layer(x, 2, [2, 2], 'same', 'pool4')                       # -1,3,8,256
+    return x
 
 
-def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode):
-  features, sequence_length = convnet_layers(images_pl, seqlen_pl, mode)
+def run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
+  with tf.variable_scope('lstm'):
+    x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
+    x = tf.transpose(x, [0, 2, 1]) 
+    x.set_shape([batch_size, 256, 24])  # -1,256,24
 
-  logits = run_layers(features, sequence_length, keep_prob, hidden_units)
+    cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell = tf.contrib.rnn.DropoutWrapper(cell=cell, output_keep_prob=0.8)
 
-  return logits, sequence_length
+    cell1 = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell1 = tf.contrib.rnn.DropoutWrapper(cell=cell1, output_keep_prob=0.8)
+
+    stack = tf.contrib.rnn.MultiRNNCell([cell, cell1], state_is_tuple=True)
+    # The second output is the last state and we will not use that
+    outputs, _ = tf.nn.dynamic_rnn(stack, x, sequence_length, dtype=tf.float32)
+    # Reshaping to apply the same weights over the timesteps
+    outputs = tf.reshape(outputs, [-1, hidden_units])
+    # Truncated normal with mean 0 and stdev=0.1
+    # Tip: Try another initialization
+    # see https://www.tensorflow.org/versions/r0.9/api_docs/python/contrib.layers.html#initializers
+    weights = tf.get_variable(name='weights',
+                              shape=[hidden_units, NUM_CLASSES],
+                              dtype=tf.float32,
+                              initializer=tf.contrib.layers.xavier_initializer())
+    biases = tf.get_variable(name='biases',
+                            shape=[NUM_CLASSES],
+                            dtype=tf.float32,
+                            initializer=tf.constant_initializer())
+    # Doing the affine projection
+    logits = tf.matmul(outputs, weights) + biases
+    # Reshaping back to the original shape
+    logits = tf.reshape(logits, [batch_size, -1, NUM_CLASSES])
+    # Time major
+    logits = tf.transpose(logits, (1, 0, 2))
+
+  return logits
+
+
+def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode, batch_size):
+  features = convnet_layers(images_pl, mode)
+  logits = run_layers(features, seqlen_pl, keep_prob, hidden_units, batch_size, mode)
+  return logits
+
 
 def loss(logits, labels_pl, seqlen_pl):
   loss = tf.nn.ctc_loss(labels=labels_pl, 
@@ -152,6 +140,7 @@ def loss(logits, labels_pl, seqlen_pl):
                         sequence_length=seqlen_pl,
                         time_major=True)
   return tf.reduce_mean(loss, name='ctcloss_mean')
+
 
 def training(loss, global_step, initial_learning_rate, decay_steps, decay_rate, momentum):
   # Create a variable to track the global step.

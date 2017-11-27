@@ -68,7 +68,7 @@ def map_fun(args, ctx):
     return sequences, lengths
 
   def placeholder_inputs(image_width, image_height, channels):
-    images_placeholder = tf.placeholder(tf.float32, [None, image_height, image_width, channels])
+    images_placeholder = tf.placeholder(tf.float32, [None, image_width, image_height, channels])
     labels_placeholder = tf.sparse_placeholder(tf.int32)
     seqlen_placeholder = tf.placeholder(tf.int32, [None])
     keep_prob = tf.placeholder(tf.float32) 
@@ -82,8 +82,8 @@ def map_fun(args, ctx):
       images.append(item[0])
       labels.append(item[1])
     xs = numpy.array(images)
-    # [batch_size, height * width] => [batch_size, height, width, channels]
-    xs = xs.reshape(batch_size, image_height, image_width, channels)
+    # [batch_size, width * height] => [batch_size, width, height, channels]
+    xs = xs.reshape(batch_size, image_width, image_height, channels)
     xs = xs.astype(numpy.float32)
     xs = xs / 255.
     ys = labels
@@ -139,15 +139,14 @@ def map_fun(args, ctx):
       images_placeholder, labels_placeholder, seqlen_placeholder, keep_prob = placeholder_inputs(IMAGE_WIDTH, IMAGE_HEIGHT, CHANNELS)
       # Build a Graph that computes predictions from the inference model.
       #images_lp, seqlen_lp, num_features, num_layers, hidden_units
-      logits = cnn_lstm_ctc_ocr.inference(images_placeholder, 
-                                          seqlen_placeholder,
-                                          keep_prob,
-                                          args.hidden_units,
-                                          args.mode,
-                                          args.batch_size)
+      logits, sequence_length = cnn_lstm_ctc_ocr.inference(images_placeholder, 
+                                                          seqlen_placeholder,
+                                                          keep_prob,
+                                                          args.hidden_units,
+                                                          args.mode)
       # Add to the Graph the Ops for loss calculation.
       #logits, labels_lp, seqlen_lp
-      loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, seqlen_placeholder)
+      loss = cnn_lstm_ctc_ocr.loss(logits, labels_placeholder, sequence_length)
       tf.summary.scalar('loss', loss)
       # global counter
       global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -159,7 +158,7 @@ def map_fun(args, ctx):
                                                           args.decay_rate, 
                                                           args.momentum)
       # Add the Op to compare the logits to the labels during evaluation.
-      dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, seqlen_placeholder)
+      dense_decoded, lerr = cnn_lstm_ctc_ocr.evaluation(logits, labels_placeholder, sequence_length)
       tf.summary.scalar('lerr', lerr)
       
       summary_op = tf.summary.merge_all()

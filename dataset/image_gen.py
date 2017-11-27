@@ -39,6 +39,6 @@ def run(num, path):
         raise e
 
 if __name__ == '__main__':
-    run(64 * 2000, 'train')
+    run(2 * 2000, 'train')
     run(1000, 'validation')
     #run(1, 'test')
