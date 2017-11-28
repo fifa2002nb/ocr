@@ -64,7 +64,7 @@ def map_fun(args, ctx):
     return indices, values, shape
 
   def get_input_lens(sequences):
-    lengths = numpy.asarray([len(s) for s in sequences], dtype=numpy.int64)
+    lengths = numpy.asarray([256 for s in sequences], dtype=numpy.int64)
     return sequences, lengths
 
   def placeholder_inputs(image_width, image_height, channels):
@@ -220,10 +220,8 @@ def map_fun(args, ctx):
         # in the list passed to sess.run() and the value tensors will be
         # returned in the tuple from the call.
         _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
-
         duration = time.time() - start_time
-        # Write the summaries and print an overview fairly often.
-        if g_step % 10 == 0:
+        if g_step % 20 == 0:
           # Print status to stdout.
           logging.info('%s [g_step:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' %(
                                                                         worker_name, 
@@ -234,6 +232,7 @@ def map_fun(args, ctx):
                                                                         args.steps,
                                                                         loss_value, 
                                                                         duration))
+        # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Update the events file.
           if sv.is_chief:

@@ -64,11 +64,11 @@ def map_fun(args, ctx):
     return indices, values, shape
 
   def get_input_lens(sequences):
-    lengths = numpy.asarray([len(s) for s in sequences], dtype=numpy.int64)
+    lengths = numpy.asarray([58 for s in sequences], dtype=numpy.int64)
     return sequences, lengths
 
   def placeholder_inputs(image_width, image_height, channels):
-    images_placeholder = tf.placeholder(tf.float32, [None, image_width, image_height, channels])
+    images_placeholder = tf.placeholder(tf.float32, [None, image_height, image_width, channels])
     labels_placeholder = tf.sparse_placeholder(tf.int32)
     seqlen_placeholder = tf.placeholder(tf.int32, [None])
     keep_prob = tf.placeholder(tf.float32) 
@@ -82,8 +82,8 @@ def map_fun(args, ctx):
       images.append(item[0])
       labels.append(item[1])
     xs = numpy.array(images)
-    # [batch_size, width * height] => [batch_size, width, height, channels]
-    xs = xs.reshape(batch_size, image_width, image_height, channels)
+    # [batch_size, height * width] => [batch_size, height, weight, channels]
+    xs = xs.reshape(batch_size, image_height, image_width, channels)
     xs = xs.astype(numpy.float32)
     xs = xs / 255.
     ys = labels

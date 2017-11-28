@@ -138,37 +138,37 @@ class DataIterator:
     return decoded
 
   def get_input_lens(self, sequences):
-	lengths = np.asarray([256 for s in sequences], dtype=np.int64)
-	return sequences, lengths
+    lengths = np.asarray([256 for s in sequences], dtype=np.int64)
+    return sequences, lengths
 
   def input_index_generate_batch(self, index=None):
-	if index:
-	  image_batch = [self.images[i] for i in index]
-	  label_batch = [self.labels[i] for i in index]
-	else:
-	  image_batch = self.images
-	  label_batch = self.labels
+    if index:
+      image_batch = [self.images[i] for i in index]
+      label_batch = [self.labels[i] for i in index]
+    else:
+      image_batch = self.images
+      label_batch = self.labels
 
-	images = np.array(image_batch)
-	images = images.astype(np.float32) / 255.
-	batch_inputs, batch_seq_len = self.get_input_lens(images)
-	batch_labels = self.sparse_tuple_from_label(label_batch)
-	return batch_inputs, batch_seq_len, batch_labels
+    images = np.array(image_batch)
+    images = images.astype(np.float32) / 255.
+    batch_inputs, batch_seq_len = self.get_input_lens(images)
+    batch_labels = self.sparse_tuple_from_label(label_batch)
+    return batch_inputs, batch_seq_len, batch_labels
 
   def next_batch(self, batch_size, fake_data=False, all_data=False):
-	if True == fake_data: 
-	  return [], [], []
+    if True == fake_data: 
+      return [], [], []
 
-	if True == all_data:
-	  return self.input_index_generate_batch(None)
+    if True == all_data:
+      return self.input_index_generate_batch(None)
 
-	if (self.cur_batch + 1) * batch_size > self.num_examples:
-	  self.cur_batch = 0
-	  self.shuffle_idx = self.shuffle_indexes()
+    if (self.cur_batch + 1) * batch_size > self.num_examples:
+      self.cur_batch = 0
+      self.shuffle_idx = self.shuffle_indexes()
 
-	cur_indexes = [self.shuffle_idx[i % self.num_examples] for i in range(self.cur_batch * batch_size, (self.cur_batch + 1) * batch_size)]
-	self.cur_batch += 1
-	return self.input_index_generate_batch(cur_indexes)
+    cur_indexes = [self.shuffle_idx[i % self.num_examples] for i in range(self.cur_batch * batch_size, (self.cur_batch + 1) * batch_size)]
+    self.cur_batch += 1
+    return self.input_index_generate_batch(cur_indexes)
 
   def steps_per_epoch(self, batch_size):
   	return self.num_examples // batch_size

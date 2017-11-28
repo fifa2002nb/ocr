@@ -72,23 +72,25 @@ def norm_layer(stack, training, name):
 def convnet_layers(images_pl, seqlen_pl, mode):
   training = (mode == "train")
   with tf.name_scope('convnet'):
-    # images shape [-1, 120, 45, 1]
+    # images shape [-1, 45, 120, 1]
     # [filters, kernel_size, padding, name, batch_norm]
     # out_height=(input_height-filter_height+2*padding)/stride+1
-    conv1 = conv_layer(images_pl, [64, 3, 'same', 'conv1', False], training)  # -1,120,45,64
-    conv2 = conv_layer(conv1, [64, 3, 'same', 'conv2', True], training)       # -1,120,45,64
-    pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,60,22,64
-    conv3 = conv_layer(pool2, [128, 3, 'same', 'conv3', False], training)     # -1,60,22,128
-    conv4 = conv_layer(conv3, [128, 3, 'same', 'conv4', True], training)      # -1,60,22,128
-    pool4 = pool_layer(conv4, 2, [1, 2], 'valid', 'pool4')                    # -1,59,11,128
-    conv5 = conv_layer(pool4, [256, 3, 'same', 'conv5', False], training)     # -1,59,11,256
-    conv6 = conv_layer(conv5, [256, 3, 'same', 'conv6', True], training)      # -1,59,11,256
-    pool6 = pool_layer(conv6, 2, [1, 2], 'valid', 'pool6')                    # -1,58,5,256
-    conv7 = conv_layer(pool6, [512, 3, 'same', 'conv7', False], training)     # -1,58,5,512
-    conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,58,5,512
-    pool8 = pool_layer(conv8, [1, 5], [1, 5], 'valid', 'pool8')               # -1,58,1,512
-    features = tf.squeeze(pool8, axis=2, name='features') # squeeze row dim.  # -1,58,512
+    conv1 = conv_layer(images_pl, [64, 3, 'same', 'conv1', False], training)  # -1,45,120,64
+    conv2 = conv_layer(conv1, [64, 3, 'same', 'conv2', True], training)       # -1,45,120,64
+    pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,22,60,64
+    conv3 = conv_layer(pool2, [128, 3, 'same', 'conv3', False], training)     # -1,22,60,128
+    conv4 = conv_layer(conv3, [128, 3, 'same', 'conv4', True], training)      # -1,22,60,128
+    pool4 = pool_layer(conv4, 2, [2, 1], 'valid', 'pool4')                    # -1,11,59,128
+    conv5 = conv_layer(pool4, [256, 3, 'same', 'conv5', False], training)     # -1,11,59,256
+    conv6 = conv_layer(conv5, [256, 3, 'same', 'conv6', True], training)      # -1,11,59,256
+    pool6 = pool_layer(conv6, 2, [2, 1], 'valid', 'pool6')                    # -1,5,58,256
+    conv7 = conv_layer(pool6, [512, 3, 'same', 'conv7', False], training)     # -1,5,58,512
+    conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,5,58,512
+    pool8 = pool_layer(conv8, [5, 1], [5, 1], 'valid', 'pool8')               # -1,1,58,512
+    features = tf.squeeze(pool8, axis=1, name='features') # squeeze row dim.  # -1,58,512
     # Calculate resulting sequence length from original image widths
+    sequence_length = seqlen_pl
+    '''
     conv1_trim = tf.constant(2, dtype=tf.int32, name='conv1_trim')
     one = tf.constant(1, dtype=tf.int32, name='one')
     two = tf.constant(2, dtype=tf.int32, name='two')
@@ -96,16 +98,17 @@ def convnet_layers(images_pl, seqlen_pl, mode):
     after_pool2 = tf.floor_div(after_conv1, two )
     after_pool4 = tf.subtract(after_pool2, one)
     sequence_length = tf.reshape(after_pool4, [-1], name='seq_len') # Vectorize
-
+    '''
     return features, sequence_length
 
-def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope):
+def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope, mode):
     weight_initializer = tf.truncated_normal_initializer(stddev=0.01)
     # Default activation is tanh
     cell_fw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
     cell_bw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
-    #cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=keep_prob)
-    #cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=keep_prob)
+    if "train" == mode:
+      cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=0.5)
+      cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=0.5)
 
     rnn_output, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
                                                     cell_bw, 
@@ -120,7 +123,7 @@ def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope):
 
     return rnn_output_stack
 
-def run_layers(features, sequence_length, keep_prob, hidden_units):
+def run_layers(features, sequence_length, keep_prob, hidden_units, mode):
   logit_activation = tf.nn.relu
   weight_initializer = tf.contrib.layers.variance_scaling_initializer()
   bias_initializer = tf.constant_initializer(value=0.0)
@@ -128,8 +131,8 @@ def run_layers(features, sequence_length, keep_prob, hidden_units):
   with tf.variable_scope("rnn"):
     # Transpose to time-major order for efficiency
     rnn_sequence = tf.transpose(features, perm=[1, 0, 2], name='time_major')
-    rnn1 = rnn_layer(rnn_sequence, sequence_length, keep_prob, hidden_units, 'bdrnn1')
-    rnn2 = rnn_layer(rnn1, sequence_length, keep_prob, hidden_units, 'bdrnn2')
+    rnn1 = rnn_layer(rnn_sequence, sequence_length, keep_prob, hidden_units, 'bdrnn1', mode)
+    rnn2 = rnn_layer(rnn1, sequence_length, keep_prob, hidden_units, 'bdrnn2', mode)
     rnn_logits = tf.layers.dense(rnn2, 
                                 NUM_CLASSES, 
                                 activation=logit_activation,
@@ -142,7 +145,7 @@ def run_layers(features, sequence_length, keep_prob, hidden_units):
 def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode):
   features, sequence_length = convnet_layers(images_pl, seqlen_pl, mode)
 
-  logits = run_layers(features, sequence_length, keep_prob, hidden_units)
+  logits = run_layers(features, sequence_length, keep_prob, hidden_units, mode)
 
   return logits, sequence_length
 

@@ -36,7 +36,7 @@ FLAGS = None
 # num_features = IMAGE_HEIGHT
 def placeholder_inputs(image_width, image_height, channels):
   # [batch_size, image_width, image_height]
-  images_placeholder = tf.placeholder(tf.float32, [None, image_width, image_height, channels])
+  images_placeholder = tf.placeholder(tf.float32, [None, image_height, image_width, channels])
   # Here we use sparse_placeholder that will generate a
   # SparseTensor required by ctc_loss op.
   labels_placeholder = tf.sparse_placeholder(tf.int32)
@@ -51,7 +51,7 @@ def fill_feed_dict(data_set, images_pl, labels_pl, seqlen_pl, keep_prob, all_dat
   images_feed, seqlen_feed, labels_feed = data_set.next_batch(FLAGS.batch_size, 
                                                               FLAGS.fake_data, 
                                                               all_data)
-  images_feed = images_feed.reshape(-1, input_data.IMAGE_WIDTH, input_data.IMAGE_HEIGHT, input_data.CHANNELS)
+  images_feed = images_feed.reshape(-1, input_data.IMAGE_HEIGHT, input_data.IMAGE_WIDTH, input_data.CHANNELS)
   if all_data:
     feed_dict = {
         images_pl: images_feed,
@@ -168,10 +168,10 @@ def run_training():
         # returned in the tuple from the call.
         _, loss_value, g_step = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
 
-        if g_step % 10 == 0:
-          duration = time.time() - start_time
-          start_time = time.time()
-          print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
+        #if g_step % 10 == 0:
+        duration = time.time() - start_time
+        start_time = time.time()
+        print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
                                                                               cur_epoch, 
                                                                               FLAGS.max_steps,
                                                                               step_per_epoch,
@@ -250,7 +250,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--batch_size',
       type=int,
-      default=64,
+      default=50,
       help='Batch size.  Must divide evenly into the dataset sizes.'
   )
   parser.add_argument(

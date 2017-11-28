@@ -173,12 +173,12 @@ def run_training():
         duration = time.time() - start_time
         start_time = time.time()
         print('[global:%d epoch:%d/%d step:%d/%d] loss = %.2f (%.3f sec)' % (g_step, 
-                                                                              cur_epoch, 
-                                                                              FLAGS.max_steps,
-                                                                              step_per_epoch,
-                                                                              steps_per_epoch, 
-                                                                              loss_value, 
-                                                                              duration))
+                                                                                cur_epoch, 
+                                                                                FLAGS.max_steps,
+                                                                                step_per_epoch,
+                                                                                steps_per_epoch, 
+                                                                                loss_value, 
+                                                                                duration))
         # Write the summaries and print an overview fairly often.
         if g_step % 100 == 0:
           # Update the events file.
@@ -251,7 +251,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--batch_size',
       type=int,
-      default=64,
+      default=50,
       help='Batch size.  Must divide evenly into the dataset sizes.'
   )
   parser.add_argument(

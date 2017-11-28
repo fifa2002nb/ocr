@@ -90,9 +90,10 @@ def convnet_layers(images_pl, mode):
 
 def run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
   with tf.variable_scope('lstm'):
+    batch_size = tf.shape(features)[0]
     x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
     x = tf.transpose(x, [0, 2, 1]) 
-    x.set_shape([batch_size, 256, 24])  # -1,256,24
+    x.set_shape([None, 256, 24])  # -1,256,24
 
     cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
     if mode == 'train':
