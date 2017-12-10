@@ -43,7 +43,8 @@ def conv_layer(stack, params, training):
   else:
     activation = tf.nn.relu
 
-  kernel_initializer = tf.contrib.layers.variance_scaling_initializer()
+  #kernel_initializer = tf.contrib.layers.variance_scaling_initializer()
+  kernel_initializer = tf.contrib.layers.xavier_initializer()
   bias_initializer = tf.constant_initializer(value=0.0)
   stack = tf.layers.conv2d(stack, 
                           filters=params[0],
@@ -88,6 +89,12 @@ def convnet_layers(images_pl, seqlen_pl, mode):
     conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,5,58,512
     pool8 = pool_layer(conv8, [5, 1], [5, 1], 'valid', 'pool8')               # -1,1,58,512
     features = tf.squeeze(pool8, axis=1, name='features') # squeeze row dim.  # -1,58,512
+    '''
+    batch_size = tf.shape(pool8)[0]
+    features = tf.reshape(pool8, [batch_size, 58, 512])                       # -1,58,512
+    features = tf.transpose(features, [0, 2, 1]) 
+    features.set_shape([None, 512, 58])                                       # -1,512,58
+    '''
     # Calculate resulting sequence length from original image widths
     sequence_length = seqlen_pl
     '''
@@ -102,7 +109,8 @@ def convnet_layers(images_pl, seqlen_pl, mode):
     return features, sequence_length
 
 def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope, mode):
-    weight_initializer = tf.truncated_normal_initializer(stddev=0.01)
+    #weight_initializer = tf.truncated_normal_initializer(stddev=0.01)
+    weight_initializer = tf.contrib.layers.xavier_initializer()
     # Default activation is tanh
     cell_fw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
     cell_bw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
@@ -125,7 +133,8 @@ def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope, 
 
 def run_layers(features, sequence_length, keep_prob, hidden_units, mode):
   logit_activation = tf.nn.relu
-  weight_initializer = tf.contrib.layers.variance_scaling_initializer()
+  #weight_initializer = tf.contrib.layers.variance_scaling_initializer()
+  weight_initializer = tf.contrib.layers.xavier_initializer()
   bias_initializer = tf.constant_initializer(value=0.0)
 
   with tf.variable_scope("rnn"):

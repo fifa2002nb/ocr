@@ -90,10 +90,11 @@ def convnet_layers(images_pl, mode):
 
 def run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
   with tf.variable_scope('lstm'):
-    batch_size = features.shape[0]
+    batch_size = tf.shape(features)[0]
     x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
-    x = tf.transpose(x, [0, 2, 1]) 
-    x.set_shape([None, 256, 24])  # -1,256,24
+    x.set_shape([None, 24, 256])
+    #x = tf.transpose(x, [0, 2, 1]) 
+    #x.set_shape([None, 256, 24])  # -1,256,24
 
     cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
     if mode == 'train':
@@ -129,9 +130,59 @@ def run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, m
   return logits
 
 
+def run_blayers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
+  with tf.variable_scope('lstm'):
+    batch_size = tf.shape(features)[0]
+    x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
+    x = tf.transpose(x, [1, 0, 2]) 
+    x.set_shape([24, None, 256])  # 24,-1,256
+
+    cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell = tf.contrib.rnn.DropoutWrapper(cell=cell, output_keep_prob=0.8)
+
+    cell1 = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell1 = tf.contrib.rnn.DropoutWrapper(cell=cell1, output_keep_prob=0.8)
+
+    outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell, 
+                                                cell1, 
+                                                x,
+                                                sequence_length=sequence_length,
+                                                time_major=True,
+                                                dtype=tf.float32,
+                                                scope='bidirectional_rnn')
+    # Concatenation allows a single output op because [A B]*[x;y] = Ax+By
+    # [ paddedSeqLen batchSize 2*rnn_size]
+    outputs = tf.concat(outputs, 2, name='output_stack')
+
+    # Reshaping to apply the same weights over the timesteps
+    outputs = tf.reshape(outputs, [-1, 2 * hidden_units])
+    # Truncated normal with mean 0 and stdev=0.1
+    # Tip: Try another initialization
+    # see https://www.tensorflow.org/versions/r0.9/api_docs/python/contrib.layers.html#initializers
+    weights = tf.get_variable(name='weights',
+                              shape=[2 * hidden_units, NUM_CLASSES],
+                              dtype=tf.float32,
+                              initializer=tf.contrib.layers.xavier_initializer())
+    biases = tf.get_variable(name='biases',
+                            shape=[NUM_CLASSES],
+                            dtype=tf.float32,
+                            initializer=tf.constant_initializer())
+    # Doing the affine projection
+    logits = tf.matmul(outputs, weights) + biases
+    # Reshaping back to the original shape
+    logits = tf.reshape(logits, [batch_size, -1, NUM_CLASSES])
+    # Time major
+    logits = tf.transpose(logits, (1, 0, 2))
+
+  return logits
+
+
+
 def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode, batch_size):
   features = convnet_layers(images_pl, mode)
-  logits = run_layers(features, seqlen_pl, keep_prob, hidden_units, batch_size, mode)
+  logits = run_blayers(features, seqlen_pl, keep_prob, hidden_units, batch_size, mode)
   return logits
 
 

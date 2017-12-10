@@ -140,7 +140,7 @@ class DataIterator:
     return decoded
 
   def get_input_lens(self, sequences):
-    lengths = np.asarray([256 for s in sequences], dtype=np.int64)
+    lengths = np.asarray([24 for s in sequences], dtype=np.int64)
     return sequences, lengths
 
   def input_index_generate_batch(self, index=None):

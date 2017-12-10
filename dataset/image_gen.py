@@ -35,10 +35,10 @@ def run(num, path):
     pool = Pool(processes = numProcess)
     try:
         pool.map(generateImg, range(num))
-    except e:
+    except Exception, e:
         raise e
 
 if __name__ == '__main__':
-    run(2 * 2000, 'train')
+    run(1 * 2000, 'train')
     run(1000, 'validation')
     #run(1, 'test')

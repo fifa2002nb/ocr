@@ -64,7 +64,7 @@ def map_fun(args, ctx):
     return indices, values, shape
 
   def get_input_lens(sequences):
-    lengths = numpy.asarray([256 for s in sequences], dtype=numpy.int64)
+    lengths = numpy.asarray([24 for s in sequences], dtype=numpy.int64)
     return sequences, lengths
 
   def placeholder_inputs(image_width, image_height, channels):
