@@ -131,11 +131,10 @@ def run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, m
 
 
 def run_blayers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
-  with tf.variable_scope('lstm'):
+  with tf.variable_scope('blstm'):
     batch_size = tf.shape(features)[0]
     x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
-    x = tf.transpose(x, [1, 0, 2]) 
-    x.set_shape([24, None, 256])  # 24,-1,256
+    x.set_shape([None, 24, 256])  # 24,-1,256
 
     cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
     if mode == 'train':
@@ -149,12 +148,12 @@ def run_blayers(features, sequence_length, keep_prob, hidden_units, batch_size, 
                                                 cell1, 
                                                 x,
                                                 sequence_length=sequence_length,
-                                                time_major=True,
+                                                time_major=False,
                                                 dtype=tf.float32,
                                                 scope='bidirectional_rnn')
     # Concatenation allows a single output op because [A B]*[x;y] = Ax+By
-    # [ paddedSeqLen batchSize 2*rnn_size]
-    outputs = tf.concat(outputs, 2, name='output_stack')
+    # [ batch_size, paddedSeqLen 2*rnn_size]
+    outputs = tf.concat(outputs, 2, name='output_stack')   
 
     # Reshaping to apply the same weights over the timesteps
     outputs = tf.reshape(outputs, [-1, 2 * hidden_units])

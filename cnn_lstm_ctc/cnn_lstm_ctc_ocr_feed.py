@@ -251,7 +251,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--batch_size',
       type=int,
-      default=50,
+      default=40,
       help='Batch size.  Must divide evenly into the dataset sizes.'
   )
   parser.add_argument(
