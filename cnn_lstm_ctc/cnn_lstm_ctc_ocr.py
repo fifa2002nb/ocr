@@ -69,6 +69,7 @@ def norm_layer(stack, training, name):
   stack = tf.layers.batch_normalization(stack, axis=3, training=training, name=name)
   return stack
 
+
 def convnet_layers(images_pl, mode):
   training = (mode == "train")
   # images shape [-1, 45, 120, 1]
@@ -85,6 +86,26 @@ def convnet_layers(images_pl, mode):
     with tf.variable_scope('unit-4'):
       x = conv_layer(x, [256, 3, 'same', 'conv4', True], training)        # -1,6,15,256
       x = pool_layer(x, 2, [2, 2], 'same', 'pool4')                       # -1,3,8,256
+    return x
+
+
+def VGG16_layers(images_pl, mode):
+  training = (mode == "train")
+  # images shape [-1, 45, 120, 1]
+  with tf.variable_scope('VGG16'):
+    conv1 = conv_layer(images_pl, [64, 3, 'same', 'conv1', False], training)  # -1,45,120,64
+    conv2 = conv_layer(conv1, [64, 3, 'same', 'conv2', True], training)       # -1,45,120,64
+    pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,22,60,64
+    conv3 = conv_layer(pool2, [128, 3, 'same', 'conv3', False], training)     # -1,22,60,128
+    conv4 = conv_layer(conv3, [128, 3, 'same', 'conv4', True], training)      # -1,22,60,128
+    pool4 = pool_layer(conv4, 2, [2, 1], 'valid', 'pool4')                    # -1,11,59,128
+    conv5 = conv_layer(pool4, [256, 3, 'same', 'conv5', False], training)     # -1,11,59,256
+    conv6 = conv_layer(conv5, [256, 3, 'same', 'conv6', True], training)      # -1,11,59,256
+    pool6 = pool_layer(conv6, 2, [2, 1], 'valid', 'pool6')                    # -1,5,58,256
+    conv7 = conv_layer(pool6, [512, 3, 'same', 'conv7', False], training)     # -1,5,58,512
+    conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,5,58,512
+    pool8 = pool_layer(conv8, [5, 1], [5, 1], 'valid', 'pool8')               # -1,1,58,512
+    x = pool8
     return x
 
 
@@ -134,7 +155,7 @@ def run_blayers(features, sequence_length, keep_prob, hidden_units, batch_size, 
   with tf.variable_scope('blstm'):
     batch_size = tf.shape(features)[0]
     x = tf.reshape(features, [batch_size, 24, 256]) # -1,24,256
-    x.set_shape([None, 24, 256])  # 24,-1,256
+    x.set_shape([None, 24, 256])                    # -1,24,256
 
     cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
     if mode == 'train':
@@ -177,10 +198,56 @@ def run_blayers(features, sequence_length, keep_prob, hidden_units, batch_size, 
 
   return logits
 
+def VGG16_run_layers(features, sequence_length, keep_prob, hidden_units, batch_size, mode):
+  with tf.variable_scope('blstm'):
+    batch_size = tf.shape(features)[0]
+    x = tf.reshape(features, [batch_size, 58, 512]) # -1,58,512
+    x.set_shape([None, 58, 512])                    # -1,58,512
+
+    cell = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell = tf.contrib.rnn.DropoutWrapper(cell=cell, output_keep_prob=0.8)
+
+    cell1 = tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True)
+    if mode == 'train':
+      cell1 = tf.contrib.rnn.DropoutWrapper(cell=cell1, output_keep_prob=0.8)
+
+    outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell, 
+                                                cell1, 
+                                                x,
+                                                sequence_length=sequence_length,
+                                                time_major=False,
+                                                dtype=tf.float32,
+                                                scope='bidirectional_rnn')
+    # Concatenation allows a single output op because [A B]*[x;y] = Ax+By
+    # [ batch_size, paddedSeqLen 2*rnn_size]
+    outputs = tf.concat(outputs, 2, name='output_stack')   
+
+    # Reshaping to apply the same weights over the timesteps
+    outputs = tf.reshape(outputs, [-1, 2 * hidden_units])
+    # Truncated normal with mean 0 and stdev=0.1
+    # Tip: Try another initialization
+    # see https://www.tensorflow.org/versions/r0.9/api_docs/python/contrib.layers.html#initializers
+    weights = tf.get_variable(name='weights',
+                              shape=[2 * hidden_units, NUM_CLASSES],
+                              dtype=tf.float32,
+                              initializer=tf.contrib.layers.xavier_initializer())
+    biases = tf.get_variable(name='biases',
+                            shape=[NUM_CLASSES],
+                            dtype=tf.float32,
+                            initializer=tf.constant_initializer())
+    # Doing the affine projection
+    logits = tf.matmul(outputs, weights) + biases
+    # Reshaping back to the original shape
+    logits = tf.reshape(logits, [batch_size, -1, NUM_CLASSES])
+    # Time major
+    logits = tf.transpose(logits, (1, 0, 2))
+
+  return logits
 
 def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode, batch_size):
-  features = convnet_layers(images_pl, mode)
-  logits = run_blayers(features, seqlen_pl, keep_prob, hidden_units, batch_size, mode)
+  features = VGG16_layers(images_pl, mode)
+  logits = VGG16_run_layers(features, seqlen_pl, keep_prob, hidden_units, batch_size, mode)
   return logits
 
 

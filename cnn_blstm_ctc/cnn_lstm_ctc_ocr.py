@@ -75,6 +75,7 @@ def convnet_layers(images_pl, seqlen_pl, mode):
     # images shape [-1, 45, 120, 1]
     # [filters, kernel_size, padding, name, batch_norm]
     # out_height=(input_height-filter_height+2*padding)/stride+1
+    '''
     conv1 = conv_layer(images_pl, [64, 3, 'same', 'conv1', False], training)  # -1,45,120,64
     conv2 = conv_layer(conv1, [64, 3, 'same', 'conv2', True], training)       # -1,45,120,64
     pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,22,60,64
@@ -88,6 +89,16 @@ def convnet_layers(images_pl, seqlen_pl, mode):
     conv8 = conv_layer(conv7, [512, 3, 'same',  'conv8', True], training)     # -1,5,58,512
     pool8 = pool_layer(conv8, [5, 1], [5, 1], 'valid', 'pool8')               # -1,1,58,512
     features = tf.squeeze(pool8, axis=1, name='features') # squeeze row dim.  # -1,58,512
+    '''
+    conv2 = conv_layer(images_pl, [64, 3, 'same', 'conv2', True], training)   # -1,45,120,64
+    pool2 = pool_layer(conv2, 2, [2, 2], 'valid', 'pool2')                    # -1,22,60,64
+    conv4 = conv_layer(pool2, [128, 3, 'same', 'conv4', True], training)      # -1,22,60,128
+    pool4 = pool_layer(conv4, 2, [2, 1], 'valid', 'pool4')                    # -1,11,59,128
+    conv6 = conv_layer(pool4, [256, 3, 'same', 'conv6', True], training)      # -1,11,59,256
+    pool6 = pool_layer(conv6, 2, [2, 1], 'valid', 'pool6')                    # -1,5,58,256
+    conv8 = conv_layer(pool6, [512, 3, 'same',  'conv8', True], training)     # -1,5,58,512
+    pool8 = pool_layer(conv8, [5, 1], [5, 1], 'valid', 'pool8')               # -1,1,58,512
+    features = pool8
     # Calculate resulting sequence length from original image widths
     sequence_length = seqlen_pl
     '''
@@ -107,14 +118,14 @@ def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope, 
     cell_fw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
     cell_bw = tf.contrib.rnn.LSTMCell(hidden_units, initializer=weight_initializer)
     if "train" == mode:
-      cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=0.5)
-      cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=0.5)
+      cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=0.8)
+      cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=0.8)
 
     rnn_output, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
                                                     cell_bw, 
                                                     bottom_sequence,
                                                     sequence_length=sequence_length,
-                                                    time_major=True,
+                                                    time_major=False,
                                                     dtype=tf.float32,
                                                     scope=scope)
     # Concatenation allows a single output op because [A B]*[x;y] = Ax+By
@@ -124,22 +135,33 @@ def rnn_layer(bottom_sequence, sequence_length, keep_prob, hidden_units, scope, 
     return rnn_output_stack
 
 def run_layers(features, sequence_length, keep_prob, hidden_units, mode):
-  logit_activation = tf.nn.relu
-  weight_initializer = tf.contrib.layers.variance_scaling_initializer()
-  bias_initializer = tf.constant_initializer(value=0.0)
-
   with tf.variable_scope("rnn"):
-    # Transpose to time-major order for efficiency
-    rnn_sequence = tf.transpose(features, perm=[1, 0, 2], name='time_major')
-    rnn1 = rnn_layer(rnn_sequence, sequence_length, keep_prob, hidden_units, 'bdrnn1', mode)
-    rnn2 = rnn_layer(rnn1, sequence_length, keep_prob, hidden_units, 'bdrnn2', mode)
-    rnn_logits = tf.layers.dense(rnn2, 
-                                NUM_CLASSES, 
-                                activation=logit_activation,
-                                kernel_initializer=weight_initializer,
-                                bias_initializer=bias_initializer,
-                                name='logits')
-  return rnn_logits
+    batch_size = tf.shape(features)[0]
+    features = tf.reshape(features, [batch_size, 58, 512])  # -1,58,512
+    features.set_shape([None, 58, 512])                     # -1,58,512
+
+    outputs = rnn_layer(features, sequence_length, keep_prob, hidden_units, 'bdrnn1', mode)
+    outputs = rnn_layer(outputs, sequence_length, keep_prob, hidden_units, 'bdrnn2', mode)
+    # Reshaping to apply the same weights over the timesteps
+    outputs = tf.reshape(outputs, [-1, 2 * hidden_units])
+    # Truncated normal with mean 0 and stdev=0.1
+    # Tip: Try another initialization
+    # see https://www.tensorflow.org/versions/r0.9/api_docs/python/contrib.layers.html#initializers
+    weights = tf.get_variable(name='weights',
+                              shape=[2 * hidden_units, NUM_CLASSES],
+                              dtype=tf.float32,
+                              initializer=tf.contrib.layers.xavier_initializer())
+    biases = tf.get_variable(name='biases',
+                            shape=[NUM_CLASSES],
+                            dtype=tf.float32,
+                            initializer=tf.constant_initializer())
+    # Doing the affine projection
+    logits = tf.matmul(outputs, weights) + biases
+    # Reshaping back to the original shape
+    logits = tf.reshape(logits, [batch_size, -1, NUM_CLASSES])
+    # Time major
+    logits = tf.transpose(logits, (1, 0, 2))
+  return logits
 
 
 def inference(images_pl, seqlen_pl, keep_prob, hidden_units, mode):

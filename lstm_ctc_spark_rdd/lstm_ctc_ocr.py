@@ -39,14 +39,17 @@ NUM_CLASSES = 64
 def inference(images_pl, seqlen_pl, num_layers, hidden_units):
   # hidden 1
   with tf.name_scope('hidden1'):
+    batch_size = tf.shape(images_pl)[0]
+    # -1,45,120 -> -1,120,45
+    images_pl = tf.transpose(images_pl, (0, 2, 1))
+    images_pl = tf.reshape(images_pl, [batch_size, 120, 45]) 
+    images_pl.set_shape([None, 120, 45])
+
     cells = [tf.contrib.rnn.LSTMCell(hidden_units, state_is_tuple=True) for _ in range(num_layers)]
 
     stack = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
     # The second output is the last state and we will no use that
     outputs, _ = tf.nn.dynamic_rnn(stack, images_pl, seqlen_pl, dtype=tf.float32)
-            
-    shape = tf.shape(images_pl)
-    batch_size = shape[0]
             
     # Reshaping to apply the same weights over the timesteps
     outputs = tf.reshape(outputs, [-1, hidden_units])
